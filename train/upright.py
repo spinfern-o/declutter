@@ -14,11 +14,17 @@ from PIL import Image, ImageOps
 
 MAX_SIDE = 4096
 
-src, dst = Path(sys.argv[1]), Path(sys.argv[2])
+if len(sys.argv) != 3:
+    sys.exit(__doc__)
+src, dst = Path(sys.argv[1]).expanduser(), Path(sys.argv[2])
+if not src.is_dir():
+    sys.exit(f"Folder not found: {src}\nExport your photos into a folder first, then pass that folder.")
 dst.mkdir(parents=True, exist_ok=True)
 
 for f in sorted(src.iterdir()):
     if f.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
+        if not f.name.startswith("."):
+            print(f"skipped {f.name} (only .jpg/.jpeg/.png; export HEIC as JPEG first)")
         continue
     img = ImageOps.exif_transpose(Image.open(f)).convert("RGB")
     img.thumbnail((MAX_SIDE, MAX_SIDE))  # only ever shrinks
