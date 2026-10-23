@@ -1,0 +1,20 @@
+class,zone,label_these,not_these
+cardboard_box,Toss / recycle,"product boxes, cartons, flattened boxes",a paper envelope (paper)
+plastic_bag,Toss / recycle,"shopping bags, zip bags, packaging film",small snack wrappers (wrapper)
+wrapper,Toss / recycle,"snack wrappers, candy wrappers, small crinkly packaging",
+paper,Paper,"loose sheets, receipts, mail, envelopes, menus, sticky-note pads",spiral or bound notebooks (book)
+book,Paper,"books, notebooks, spiral notebooks",
+cable,Tech,"cords, chargers (brick + cord), adapters, extension cords",
+electronics,Tech,"phone, earbuds and case, mouse, power bank, remote, calculator",batteries (battery)
+battery,Tech,"AA, AAA, 9V, coin cells",power banks (electronics)
+pen,Office,"pens, pencils, markers, highlighters",toothbrushes (toothbrush)
+scissors,Office,scissors of any size,utility knives (tool)
+tape,Office,"tape rolls, tape dispensers",tape measures (tool)
+tool,Household,"screwdriver, wrench, pliers, tape measure, utility knife, hammer",
+keys,Household,"single keys, key rings with keys",
+bottle,Toiletries,"bottles, spray bottles, tubes (incl. toothpaste), jars, pill bottles",
+cosmetic,Toiletries,"makeup, lipstick, compacts, nail polish, mascara",lotion tubes (bottle)
+toothbrush,Toiletries,"toothbrushes, floss containers",
+wipes_pack,Toiletries,"wet-wipe packs, tissue packs",tissue boxes (cardboard_box)
+toy,Misc,"plush toys, figurines, small toys",
+other,Misc,any other item at least 30 px wide at 640 px,
