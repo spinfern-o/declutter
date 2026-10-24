@@ -47,7 +47,12 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
    you can't separate by eye, like a tangle of cables, gets one polygon.
 6. **Items in packaging:** if you can see the item, label the item. If you only see the
    box, label `cardboard_box`.
-7. **The drawer or cart itself is never labeled.** It's background.
+7. **Furniture is never labeled**: desks, shelves, drawers, carts. It's background.
+   Portable containers (baskets, caddies, bins, boxes) are items: label them `other`
+   (or `cardboard_box` for cardboard), even when they hold other things.
+8. **Label only the space the photo is about.** The floor, walls, windowsills, and anything
+   in the background (another desk across the room, a backpack on the floor, a neighboring
+   cart) are not labeled, even if they're items.
 
 ## Taking photos
 
