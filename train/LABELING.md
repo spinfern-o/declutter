@@ -74,6 +74,8 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
   and export again; read the warnings (size rule, classes missing from a split, look-alike photos
   across splits).
 - Upload the zip to `My Drive/declutter/` and run `train/colab.ipynb` on Colab. It trains on the newest zip.
+- Download the run into `train/runs/`, then run `python train/promote.py train/runs/<run> <export.zip>`.
+  It replaces `models/best.pt` (what `predict.py` loads) only if the run scores higher on the test photos.
 
 ## Decisions log
 

@@ -12,7 +12,7 @@ out.mkdir(exist_ok=True)
 # model and the cutouts see the exact same upright pixels
 img = ImageOps.exif_transpose(Image.open(photo)).convert("RGB")
 
-model = YOLO("train/runs/train-6c-stage1/weights/best.pt")  # best so far: v6 export, backbone frozen
+model = YOLO("models/best.pt")  # current best; train/promote.py replaces it (which run: models/best.txt)
 result = model(img)[0]  # one photo in -> one result out
 
 result.save(out / "annotated.jpg")  # boxes + colored masks drawn on the photo
