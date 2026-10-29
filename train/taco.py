@@ -5,6 +5,7 @@ TACO (CC BY 4.0): https://github.com/pedropro/TACO. Get its data/annotations.jso
 
 usage: python train/taco.py ANNOTATIONS_JSON OUT_DIR [COUNT]
 """
+import csv
 import io
 import json
 import sys
@@ -14,9 +15,7 @@ from pathlib import Path
 import requests
 from PIL import Image, ImageOps
 
-CLASSES = ["cardboard_box", "plastic_bag", "wrapper", "paper", "book", "cable", "electronics",
-           "battery", "pen", "scissors", "tape", "tool", "keys", "bottle", "cosmetic",
-           "toothbrush", "wipes_pack", "toy", "other"]
+CLASSES = [r["class"] for r in csv.DictReader(open(Path(__file__).parent / "classes.csv"))]
 
 # TACO category name -> our class; None = skip (too small for the 30 px rule)
 TACO_MAP = {
@@ -85,6 +84,8 @@ for img in picked:
     for a in by_image[img["id"]]:
         cls = our_class(a)
         if cls is None or not isinstance(a["segmentation"], list) or not a["segmentation"]:
+            continue
+        if max(a["bbox"][2:]) * 640 / max(img["width"], img["height"]) < 30:  # size rule, LABELING.md
             continue
         poly = max(a["segmentation"], key=len)  # multi-part objects: keep the largest part
         coords = " ".join(f"{v / (img['width'] if k % 2 == 0 else img['height']):.5f}"
