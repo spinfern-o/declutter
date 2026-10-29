@@ -12,8 +12,8 @@ out.mkdir(exist_ok=True)
 # model and the cutouts see the exact same upright pixels
 img = ImageOps.exif_transpose(Image.open(photo)).convert("RGB")
 
-model = YOLO("yolo11n-seg.pt")  # downloads pretrained COCO weights on first run
-result = model(img, device="mps")[0]  # one photo in -> one result out
+model = YOLO("train/runs/train-6c-stage1/weights/best.pt")  # best so far: v6 export, backbone frozen
+result = model(img)[0]  # one photo in -> one result out
 
 result.save(out / "annotated.jpg")  # boxes + colored masks drawn on the photo
 
@@ -25,6 +25,8 @@ for i, (box, polygon) in enumerate(zip(result.boxes, result.masks.xy)):
     name = result.names[int(box.cls)]
     conf = float(box.conf)
     print(f"{i}: {name:<12} confidence {conf:.2f}")
+    if len(polygon) < 3:  # a tiny item's mask can come back with no outline
+        continue
 
     # mask polygon is already in original-photo pixels; paint it white on black
     mask = Image.new("L", img.size, 0)

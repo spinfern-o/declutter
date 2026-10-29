@@ -7,7 +7,8 @@ Fridges and whole rooms are out of scope until the drawer model works.
 
 ## Classes (19)
 
-Spell them exactly like this in Roboflow: lowercase, with underscores.
+Spell them exactly like this in Roboflow: lowercase, with underscores. The scripts read the
+list from `classes.csv`, so change both together.
 Classes are defined by **shape and look, not by what the item is for**.
 
 | Class | Label these | Not these |
@@ -68,8 +69,11 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
 - Project type: **Instance Segmentation** (not Object Detection).
 - Add all 19 classes in the Classes tab before labeling.
 - Use the SAM smart-polygon tool, then fix the edges by hand where needed.
-- Export: split 80 / 10 / 10, format **YOLOv8 / YOLO11 segmentation**. Unzip it to
-  `train/dataset/` so that `train/dataset/data.yaml` exists.
+- Export: format **YOLOv8 / YOLO11 segmentation**, keeping the splits you assigned.
+- Before training, run `python train/check_labels.py <export.zip>`. Fix every ERROR in Roboflow
+  and export again; read the warnings (size rule, classes missing from a split, look-alike photos
+  across splits).
+- Upload the zip to `My Drive/declutter/` and run `train/colab.ipynb` on Colab. It trains on the newest zip.
 
 ## Decisions log
 
