@@ -21,7 +21,10 @@ def upright(photo):
 
 
 def cutouts(result, img):
-    """Yield (class name, confidence, RGBA cutout) for each item the model found."""
+    """Yield (class name, confidence, RGBA cutout, bbox) for each item the model found.
+
+    bbox is (left, top, right, bottom) in photo pixels: where the cutout sat.
+    """
     if result.masks is None:
         return
     img = img.convert("RGBA")
@@ -33,6 +36,10 @@ def cutouts(result, img):
         mask = Image.new("L", img.size, 0)
         ImageDraw.Draw(mask).polygon([tuple(p) for p in polygon], fill=255)
 
+        bbox = mask.getbbox()
+        if bbox is None:  # an outline that covers no pixels; crop(None) would return the whole photo
+            continue
+
         cutout = img.copy()
         cutout.putalpha(mask)  # mask becomes transparency: only the item stays visible
-        yield result.names[int(box.cls)], float(box.conf), cutout.crop(mask.getbbox())
+        yield result.names[int(box.cls)], float(box.conf), cutout.crop(bbox), bbox

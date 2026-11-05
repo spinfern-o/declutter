@@ -16,6 +16,8 @@ def test_detect_returns_zoned_items():
     for item in body["items"]:
         assert item["zone"] in body["zones"]
         assert item["cutout"]
+        x, y, w, h = item["box"]
+        assert 0 <= x and 0 <= y and w > 0 and h > 0 and x + w <= 1 and y + h <= 1
 
 
 def test_rejects_non_image():

@@ -34,8 +34,9 @@ async def detect(photo: UploadFile):
         raise HTTPException(400, "Not an image.")
 
     result = model(img, verbose=False)[0]
+    width, height = img.size
     items = []
-    for name, conf, cutout in cutouts(result, img):
+    for name, conf, cutout, (left, top, right, bottom) in cutouts(result, img):
         cutout.thumbnail((THUMB, THUMB))
         png = io.BytesIO()
         cutout.save(png, "PNG")
@@ -44,5 +45,7 @@ async def detect(photo: UploadFile):
             "zone": zone_of.get(name, "Misc"),  # a model/CSV mismatch must not break the app
             "confidence": round(conf, 3),
             "cutout": base64.b64encode(png.getvalue()).decode(),
+            # where the item sat, as fractions of the photo, so the app can draw it on its own copy
+            "box": [round(v, 4) for v in (left / width, top / height, (right - left) / width, (bottom - top) / height)],
         })
     return {"zones": zones, "items": items}

@@ -19,6 +19,6 @@ result.save(out / "annotated.jpg")  # boxes + colored masks drawn on the photo
 if result.masks is None:
     sys.exit("No objects found.")
 
-for i, (name, conf, cutout) in enumerate(cutouts(result, img)):
+for i, (name, conf, cutout, _) in enumerate(cutouts(result, img)):
     print(f"{i}: {name:<12} confidence {conf:.2f}")
     cutout.save(out / f"{i}_{name}.png")
