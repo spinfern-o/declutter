@@ -84,17 +84,7 @@ struct SpacesView: View {
         Task {
             do {
                 let response = try await API.detect(jpeg: jpeg)
-                let space = Space(name: "Cabinet \(spaces.count + 1)", photo: jpeg, zones: response.zones)
-                context.insert(space)
-                for found in response.items {
-                    space.items.append(Item(name: found.class.replacingOccurrences(of: "_", with: " "),
-                                            className: found.class, zone: found.zone, confidence: found.confidence,
-                                            cutout: Data(base64Encoded: found.cutout), box: found.box))
-                }
-                if let shelves = response.shelves, !shelves.isEmpty {  // otherwise the Plan screen asks for slots
-                    (space.slots, space.slotRects) = CabinetLayout.slots(fromShelves: shelves.map(\.box))
-                }
-                try? context.save()
+                let space = Space.make(name: "Cabinet \(spaces.count + 1)", photo: jpeg, response: response, in: context)
                 pending = nil
                 path.append(space)
             } catch {

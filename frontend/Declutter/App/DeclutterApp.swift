@@ -13,8 +13,11 @@ struct DeclutterApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SpacesView()
+            TabView {
+                Tab("Rooms", systemImage: "square.split.bottomrightquarter") { RoomsView() }
+                Tab("Cabinets", systemImage: "cabinet") { SpacesView() }
+            }
         }
-        .modelContainer(for: Space.self)
+        .modelContainer(for: [Space.self, Room.self])
     }
 }
