@@ -6,6 +6,9 @@ on:
     branches:
       - main
       - master
+    paths:  # only the server lives on Fly; app-only changes don't redeploy it
+      - backend/**
+      - .github/workflows/fly-deploy.yml
 jobs:
   deploy:
     name: Deploy app
@@ -14,11 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # best.pt is gitignored; it lives on the "model" release. To ship a newly promoted model:
-      #   gh release upload model models/best.pt --clobber
-      - run: gh release download model --pattern best.pt --dir models
+      #   gh release upload model backend/models/best.pt --clobber
+      - run: gh release download model --pattern best.pt --dir backend/models
         env:
           GH_TOKEN: ${{ github.token }}
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only
+        working-directory: backend  # fly.toml, Dockerfile and the build context all live here
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

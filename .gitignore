@@ -2,7 +2,7 @@
 out/
 *.pt
 samples/
-train/dataset/
-train/runs/
 runs/
 xcuserdata/
+backend/train/dataset/
+backend/train/runs/

@@ -18,3 +18,4 @@ toothbrush,Toiletries,"toothbrushes, floss containers",
 wipes_pack,Toiletries,"wet-wipe packs, tissue packs",tissue boxes (cardboard_box)
 toy,Misc,"plush toys, figurines, small toys",
 other,Misc,any other item at least 30 px wide at 640 px,
+shelf,Structure,"each level of a cabinet or cart, a drawer's inside, a divided section: the open space items sit in","the cabinet's outer frame, doors"

@@ -5,7 +5,7 @@ Everyone who labels follows this file. Consistency matters more than precision.
 Scope (v1): dorm carts, desk drawers, kitchen junk drawers, bathroom drawers.
 Fridges and whole rooms are out of scope until the drawer model works.
 
-## Classes (19)
+## Classes (20)
 
 Spell them exactly like this in Roboflow: lowercase, with underscores. The scripts read the
 list from `classes.csv`, so change both together.
@@ -32,6 +32,7 @@ Classes are defined by **shape and look, not by what the item is for**.
 | `wipes_pack` | wet-wipe packs, tissue packs | tissue *boxes* (`cardboard_box`) |
 | `toy` | plush toys, figurines, small toys | |
 | `other` | any other item at least 30 px wide (see size rule) | |
+| `shelf` | each level of a cabinet or cart, a drawer's inside, a divided section: the open space items sit in | the cabinet's outer frame, doors |
 
 If an item could fit two classes, choose using the "Not these" column. If it's still
 unclear, use `other` and add the case to **Decisions log** below so everyone handles it the same way.
@@ -48,7 +49,10 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
    you can't separate by eye, like a tangle of cables, gets one polygon.
 6. **Items in packaging:** if you can see the item, label the item. If you only see the
    box, label `cardboard_box`.
-7. **Furniture is never labeled**: desks, shelves, drawers, carts. It's background.
+7. **Shelves are labeled; other furniture is not.** Label every shelf level, drawer opening or divided
+   section of the space as `shelf`: one polygon covering the open space from its board up to the board
+   above (a rectangle polygon is fine). The items on it are still labeled on their own. The cabinet's
+   outer frame, doors, desks and walls are background. The app builds its 3D cabinet from these shelves.
    Portable containers (baskets, caddies, bins, boxes) are items: label them `other`
    (or `cardboard_box` for cardboard), even when they hold other things.
 8. **Label only the space the photo is about.** The floor, walls, windowsills, and anything
@@ -58,6 +62,8 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
 ## Taking photos
 
 - Mostly top-down, with the whole drawer in frame. Use the normal camera: no zoom, no filters.
+- Cabinets and carts with shelves: shoot them front-on, with every shelf in frame. A top-down photo of an
+  open drawer gets one `shelf` around the drawer's inside.
 - About 20% of photos from an angle, like a person casually snapping the drawer.
 - Vary everything except the subject: different drawers, daylight vs. lamp light, tidy vs. very messy,
   items touching and overlapping, a few nearly empty drawers.
@@ -66,9 +72,13 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
 
 ## Roboflow setup
 
+Run the commands below from the `backend/` folder.
+
 - Project type: **Instance Segmentation** (not Object Detection).
-- Add all 19 classes in the Classes tab before labeling.
+- Add all 20 classes in the Classes tab before labeling.
 - Use the SAM smart-polygon tool, then fix the edges by hand where needed.
+- When a class is added (like `shelf`), go back over the existing photos and label it there too. An unlabeled
+  shelf in an old photo teaches the model that shelves are background.
 - Export: format **YOLOv8 / YOLO11 segmentation**, keeping the splits you assigned.
 - Before training, run `python train/check_labels.py <export.zip>`. Fix every ERROR in Roboflow
   and export again; read the warnings (size rule, classes missing from a split, look-alike photos
@@ -76,7 +86,9 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
 - Upload the zip to `My Drive/declutter/` and run `train/colab.ipynb` on Colab. It trains on the newest zip.
 - Download the run into `train/runs/`, then run `python train/promote.py train/runs/<run> <export.zip>`.
   It replaces `models/best.pt` (what `predict.py` loads) only if the run scores higher on the test photos.
-- If it was replaced, run `gh release upload model models/best.pt --clobber` so the next deploy from `main` ships it.
+  After adding a class (like `shelf`) it can't score the old model, so it stops and prints the `cp` command;
+  check the run's scores yourself before copying it.
+- If it was replaced, run `gh release upload model backend/models/best.pt --clobber` (from the repo root) so the next deploy from `main` ships it.
 
 ## Decisions log
 

@@ -6,6 +6,8 @@ struct DeclutterApp: App {
     init() {
         #if DEBUG
         Organizer.selfCheck()
+        CabinetLayout.selfCheck()
+        ModelCatalog.selfCheck()
         #endif
     }
 

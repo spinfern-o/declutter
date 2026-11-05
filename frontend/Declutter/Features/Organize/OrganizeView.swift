@@ -6,6 +6,7 @@ struct OrganizeView: View {
     @Bindable var space: Space
     @Environment(\.modelContext) private var context
     @State private var editingSlots = false
+    @State private var viewing3D = false
     @State private var moves = 0  // haptic trigger
 
     private var counts: [String: Int] {
@@ -61,6 +62,7 @@ struct OrganizeView: View {
         .navigationTitle("Plan")
         .toolbar {
             Menu {
+                Button("View in 3D", systemImage: "cube") { viewing3D = true }
                 Button("Edit Slots", systemImage: "square.split.1x2") { editingSlots = true }
                 Button("Re-sort", systemImage: "arrow.triangle.2.circlepath") {
                     space.placement = [:]
@@ -72,6 +74,7 @@ struct OrganizeView: View {
             .disabled(space.slots.isEmpty)
         }
         .sheet(isPresented: $editingSlots) { SlotsSheet(space: space) }
+        .navigationDestination(isPresented: $viewing3D) { CabinetSceneView(space: space) }
         .sensoryFeedback(.success, trigger: moves)
         .onAppear {
             if space.slots.isEmpty { editingSlots = true }
@@ -122,8 +125,7 @@ struct OrganizeView: View {
     }
 
     private func place(_ zone: String, in slot: String) {
-        space.placement[zone] = slot
-        try? context.save()
+        space.place(zone, in: slot)
         moves += 1
     }
 
@@ -134,84 +136,5 @@ struct OrganizeView: View {
             space.placement = plan
             try? context.save()
         }
-    }
-}
-
-/// Edit the cabinet's shelves and drawers, easiest to reach first.
-struct SlotsSheet: View {
-    let space: Space
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
-    @State private var slots: [Slot]
-
-    private struct Slot: Identifiable {
-        let id = UUID()
-        var name: String
-        let original: String?  // lets a rename keep the zones that were placed there
-    }
-
-    private static let presets: [(title: String, slots: [String])] = [
-        ("3 Shelves", ["Middle shelf", "Top shelf", "Bottom shelf"]),
-        ("2 Drawers + 2 Shelves", ["Top drawer", "Bottom drawer", "Upper shelf", "Lower shelf"]),
-        ("4 Drawers", ["Top drawer", "Second drawer", "Third drawer", "Bottom drawer"]),
-    ]
-
-    init(space: Space) {
-        self.space = space
-        _slots = State(initialValue: space.slots.map { Slot(name: $0, original: $0) })
-    }
-
-    private var names: [String] { slots.map { $0.name.trimmingCharacters(in: .whitespaces) } }
-    private var valid: Bool { !names.isEmpty && !names.contains("") && Set(names).count == names.count }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ForEach($slots) { $slot in
-                        TextField("Name", text: $slot.name)
-                    }
-                    .onDelete { slots.remove(atOffsets: $0) }
-                    .onMove { slots.move(fromOffsets: $0, toOffset: $1) }
-                    Button("Add Slot", systemImage: "plus") {
-                        slots.append(Slot(name: "Slot \(slots.count + 1)", original: nil))
-                    }
-                } header: {
-                    Text("Easiest to reach first")
-                } footer: {
-                    Text("Drag to reorder. The biggest groups go in the easiest spots. Names must be unique.")
-                }
-                Section("Quick Start") {
-                    ForEach(Self.presets, id: \.title) { preset in
-                        Button(preset.title) {
-                            slots = preset.slots.map { Slot(name: $0, original: nil) }
-                        }
-                    }
-                }
-            }
-            .environment(\.editMode, .constant(.active))
-            .navigationTitle("Cabinet Slots")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { save() }
-                        .disabled(!valid)
-                }
-            }
-        }
-    }
-
-    private func save() {
-        var renamed: [String: String] = [:]
-        for (slot, name) in zip(slots, names) {
-            if let original = slot.original { renamed[original] = name }
-        }
-        space.placement = space.placement.compactMapValues { renamed[$0] }  // zones on deleted slots get re-placed
-        space.slots = names
-        try? context.save()
-        dismiss()
     }
 }

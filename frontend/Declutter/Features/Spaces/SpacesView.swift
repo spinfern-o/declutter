@@ -89,7 +89,10 @@ struct SpacesView: View {
                 for found in response.items {
                     space.items.append(Item(name: found.class.replacingOccurrences(of: "_", with: " "),
                                             className: found.class, zone: found.zone, confidence: found.confidence,
-                                            cutout: Data(base64Encoded: found.cutout)))
+                                            cutout: Data(base64Encoded: found.cutout), box: found.box))
+                }
+                if let shelves = response.shelves, !shelves.isEmpty {  // otherwise the Plan screen asks for slots
+                    (space.slots, space.slotRects) = CabinetLayout.slots(fromShelves: shelves.map(\.box))
                 }
                 try? context.save()
                 pending = nil
@@ -98,34 +101,5 @@ struct SpacesView: View {
                 failed = true
             }
         }
-    }
-}
-
-struct CameraPicker: UIViewControllerRepresentable {
-    let onPick: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: CameraPicker
-        init(_ parent: CameraPicker) { self.parent = parent }
-
-        func imagePickerController(_ picker: UIImagePickerController,
-                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage { parent.onPick(image) }
-            parent.dismiss()
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { parent.dismiss() }
     }
 }

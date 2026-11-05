@@ -1,11 +1,8 @@
 # keep the upload to the remote builder small; models/ must NOT be listed (best.pt ships in the image)
-.git
 .venv
-.vscode
 samples
 runs
 out
-ios
 train/dataset
 train/runs
 **/__pycache__
