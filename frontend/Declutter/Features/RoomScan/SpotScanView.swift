@@ -123,9 +123,13 @@ private struct SpotTap: View {
     private func add() {
         guard let p = ar.floorPoint() else { return }
         taps.append(p)
-        if taps.count == 2 { frame = RoomGeometry.align(taps[0], taps[1], viewer: ar.viewer) }
+        if taps.count == 2 {
+            frame = RoomGeometry.align(taps[0], taps[1], viewer: ar.viewer)
+            if frame == nil { taps.removeLast() }  // both ends on one point: wait for the other end
+        }
         if taps.count == 4, let frame {
             spot = RoomGeometry.spot(frame.room(taps[2]), frame.room(taps[3]), viewer: frame.room(ar.viewer))
+            if spot == nil { taps.removeLast() }  // both front corners on one point: wait for the other
         }
     }
 

@@ -11,7 +11,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		D0C100000000000000000004 /* Declutter */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Declutter; sourceTree = "<group>"; };
+		D0C100000000000000000004 /* Declutter */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Declutter;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */

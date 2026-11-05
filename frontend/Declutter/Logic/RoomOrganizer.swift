@@ -15,6 +15,11 @@ enum RoomOrganizer {
         var cabinet: [ID: Int]  // where each item ends up; missing = nowhere (toss, or no shelves in the room)
     }
 
+    /// A cabinet's saved part of the room plan; before it has one, the plan the user made on its own Plan screen.
+    static func starting(room: [String: String], own: [String: String]) -> [String: String] {
+        room.isEmpty ? own : room
+    }
+
     /// Every (cabinet, shelf) pair, rank 0 of every cabinet first, then rank 1, and so on.
     static func reachOrder(_ cabinets: [[String]]) -> [(cabinet: Int, shelf: String)] {
         (0..<(cabinets.map(\.count).max() ?? 0)).flatMap { rank in
@@ -86,6 +91,11 @@ enum RoomOrganizer {
         assert(r.cabinet[1] == 1 && r.cabinet[0] == 0 && r.cabinet[2] == 0, "a moved item goes where the user put it")
         assert(r.placement[1]["Tech"] == nil && r.shelves[1]["Tech"] == "B only", "a moved item gets a shelf without moving its zone")
         assert(r.cabinet[6] == 0, "a move to a cabinet outside the room is ignored")
+
+        assert(starting(room: [:], own: ["Tech": "Top shelf"]) == ["Tech": "Top shelf"],
+               "a cabinet joining a room keeps the plan made on its own Plan screen")
+        assert(starting(room: ["Paper": "Shelf 2"], own: ["Tech": "Top shelf"]) == ["Paper": "Shelf 2"],
+               "once it has a room plan, that plan wins")
 
         r = organize(items: mess, zones: zones, cabinets: [Cabinet(slots: [], placement: [:])])
         assert(r.cabinet.isEmpty && r.placement == [[:]], "a room with no shelves places nothing")

@@ -18,7 +18,7 @@ struct RoomPlan {
             items: items.map { (id: $0.persistentModelID, zone: $0.zone,
                                 override: $0.destination.flatMap { index[$0.persistentModelID] }) },
             zones: zones,
-            cabinets: cabinets.map { .init(slots: $0.slots, placement: $0.roomPlacement) })
+            cabinets: cabinets.map { .init(slots: $0.slots, placement: RoomOrganizer.starting(room: $0.roomPlacement, own: $0.placement)) })
         placement = result.placement
         shelves = result.shelves
         cabinetOf = result.cabinet

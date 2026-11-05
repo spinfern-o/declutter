@@ -8,6 +8,7 @@ struct SpotSheet: View {
     let room: Room
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @State private var settingUp = false
 
     var body: some View {
         let plan = RoomPlan(room: room)
@@ -16,7 +17,10 @@ struct SpotSheet: View {
             List {
                 Section("Here") {
                     let here = plan.items(in: space).byName
-                    if here.isEmpty {
+                    if space.slots.isEmpty {  // no shelves were detected in its photo: nothing can go here yet
+                        Text("No shelves yet, so nothing can go here.").foregroundStyle(.secondary)
+                        Button("Set Up Shelves", systemImage: "square.split.1x2") { settingUp = true }
+                    } else if here.isEmpty {
                         Text("Nothing here yet. Pick items below to move them here.").foregroundStyle(.secondary)
                     }
                     ForEach(here) { row($0, plan: plan) }
@@ -31,6 +35,7 @@ struct SpotSheet: View {
             }
             .navigationTitle(space.name)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $settingUp, onDismiss: { RoomPlan(room: room).save(in: context) }) { SlotsSheet(space: space) }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
