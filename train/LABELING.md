@@ -76,6 +76,7 @@ unclear, use `other` and add the case to **Decisions log** below so everyone han
 - Upload the zip to `My Drive/declutter/` and run `train/colab.ipynb` on Colab. It trains on the newest zip.
 - Download the run into `train/runs/`, then run `python train/promote.py train/runs/<run> <export.zip>`.
   It replaces `models/best.pt` (what `predict.py` loads) only if the run scores higher on the test photos.
+- If it was replaced, run `gh release upload model models/best.pt --clobber` so the next deploy from `main` ships it.
 
 ## Decisions log
 
