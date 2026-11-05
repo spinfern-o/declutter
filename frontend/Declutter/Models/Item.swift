@@ -9,7 +9,8 @@ final class Item {
     var confidence: Double?
     @Attribute(.externalStorage) var cutout: Data?
     var box: [Double]?  // where it sat in the photo: [x, y, w, h] as fractions; nil for manual and older items
-    var space: Space?
+    var space: Space?  // the cabinet it was detected in
+    var destination: Space?  // the spot the user moved it to in its room; wins over the room plan
 
     init(name: String, className: String, zone: String, confidence: Double? = nil, cutout: Data? = nil,
          box: [Double]? = nil) {

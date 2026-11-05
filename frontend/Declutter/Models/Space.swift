@@ -14,6 +14,8 @@ final class Space {
     @Relationship(deleteRule: .cascade, inverse: \Item.space) var items: [Item] = []
     var room: Room?  // the room this cabinet stands in; nil = a loose cabinet, as before rooms existed
     var spot: [Double]?  // where it stands in its room: [x, z, yaw, width, depth, height], room frame (see Room)
+    var roomPlacement: [String: String] = [:]  // zone -> shelf: this cabinet's part of its room's plan (RoomOrganizer)
+    @Relationship(deleteRule: .nullify, inverse: \Item.destination) var movedHere: [Item] = []  // items moved here from elsewhere in the room
 
     init(name: String, photo: Data, zones: [String]) {
         self.name = name
