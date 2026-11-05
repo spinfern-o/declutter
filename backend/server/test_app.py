@@ -37,3 +37,13 @@ def test_split_keeps_shelves_out_of_items_and_sorts_them():
 def test_rejects_non_image():
     r = client.post("/detect", files={"photo": ("note.txt", b"not a photo", "text/plain")})
     assert r.status_code == 400
+
+
+def test_split_keeps_one_shelf_per_level():
+    # YOLO keeps overlapping boxes of one class; a near-duplicate or a box spanning two levels must not become a slot
+    found = [("shelf", 0.6, None, (0, 0, 100, 100)),  # spans both levels
+             ("shelf", 0.9, None, (0, 0, 100, 50)),
+             ("shelf", 0.8, None, (0, 50, 100, 100)),
+             ("shelf", 0.7, None, (2, 1, 100, 49))]  # near-duplicate of the top level
+    _, shelves = split(found, {"shelf": "Structure"})
+    assert [d[3] for d in shelves] == [(0, 0, 100, 50), (0, 50, 100, 100)]

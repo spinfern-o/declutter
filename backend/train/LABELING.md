@@ -77,6 +77,8 @@ Run the commands below from the `backend/` folder.
 - Project type: **Instance Segmentation** (not Object Detection).
 - Add all 20 classes in the Classes tab before labeling.
 - Use the SAM smart-polygon tool, then fix the edges by hand where needed.
+- When a class is added (like `shelf`), go back over the existing photos and label it there too. An unlabeled
+  shelf in an old photo teaches the model that shelves are background.
 - Export: format **YOLOv8 / YOLO11 segmentation**, keeping the splits you assigned.
 - Before training, run `python train/check_labels.py <export.zip>`. Fix every ERROR in Roboflow
   and export again; read the warnings (size rule, classes missing from a split, look-alike photos
