@@ -2,7 +2,7 @@ import Foundation
 
 /// Rule-based placement: which zone goes in which shelf or drawer. Pure functions, so they can be self-checked.
 enum Organizer {
-    static let tossZone = "Toss / recycle"  // must match the zone name in train/classes.csv
+    static let tossZone = "Toss / recycle"  // must match the zone name in backend/train/classes.csv
 
     /// zone -> slot. `slots` are ordered easiest to reach first; `current` holds earlier placements and user overrides.
     static func plan(counts: [String: Int], zones: [String], slots: [String], current: [String: String]) -> [String: String] {
