@@ -91,6 +91,9 @@ struct SpacesView: View {
                                             className: found.class, zone: found.zone, confidence: found.confidence,
                                             cutout: Data(base64Encoded: found.cutout), box: found.box))
                 }
+                if let shelves = response.shelves, !shelves.isEmpty {  // otherwise the Plan screen asks for slots
+                    (space.slots, space.slotRects) = CabinetLayout.slots(fromShelves: shelves.map(\.box))
+                }
                 try? context.save()
                 pending = nil
                 path.append(space)

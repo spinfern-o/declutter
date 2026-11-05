@@ -9,8 +9,14 @@ struct DetectResponse: Decodable {
         let box: [Double]?  // [x, y, w, h] as fractions of the photo; optional so older servers still decode
     }
 
+    struct Shelf: Decodable {
+        let box: [Double]  // [x, y, w, h] as fractions of the photo
+        let confidence: Double
+    }
+
     let zones: [String]
     let items: [Found]
+    let shelves: [Shelf]?  // top to bottom; optional so older servers still decode
 }
 
 enum API {

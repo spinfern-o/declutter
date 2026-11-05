@@ -3,7 +3,6 @@
 samples
 runs
 out
-tools
 train/dataset
 train/runs
 **/__pycache__

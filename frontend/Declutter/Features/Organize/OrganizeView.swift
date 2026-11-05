@@ -6,7 +6,7 @@ struct OrganizeView: View {
     @Bindable var space: Space
     @Environment(\.modelContext) private var context
     @State private var editingSlots = false
-    @State private var viewingPhoto = false
+    @State private var viewing3D = false
     @State private var moves = 0  // haptic trigger
 
     private var counts: [String: Int] {
@@ -62,7 +62,7 @@ struct OrganizeView: View {
         .navigationTitle("Plan")
         .toolbar {
             Menu {
-                Button("View on Photo", systemImage: "photo") { viewingPhoto = true }
+                Button("View in 3D", systemImage: "cube") { viewing3D = true }
                 Button("Edit Slots", systemImage: "square.split.1x2") { editingSlots = true }
                 Button("Re-sort", systemImage: "arrow.triangle.2.circlepath") {
                     space.placement = [:]
@@ -74,7 +74,7 @@ struct OrganizeView: View {
             .disabled(space.slots.isEmpty)
         }
         .sheet(isPresented: $editingSlots) { SlotsSheet(space: space) }
-        .navigationDestination(isPresented: $viewingPhoto) { MarkSlotsView(space: space) }
+        .navigationDestination(isPresented: $viewing3D) { CabinetSceneView(space: space) }
         .sensoryFeedback(.success, trigger: moves)
         .onAppear {
             if space.slots.isEmpty { editingSlots = true }
