@@ -13,6 +13,11 @@ jobs:
     concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
       - uses: actions/checkout@v4
+      # best.pt is gitignored; it lives on the "model" release. To ship a newly promoted model:
+      #   gh release upload model models/best.pt --clobber
+      - run: gh release download model --pattern best.pt --dir models
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only
         env:
