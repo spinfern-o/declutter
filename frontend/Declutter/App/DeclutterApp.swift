@@ -9,6 +9,7 @@ struct DeclutterApp: App {
         CabinetLayout.selfCheck()
         ModelCatalog.selfCheck()
         RoomGeometry.selfCheck()
+        RoomOrganizer.selfCheck()
         #endif
     }
 
