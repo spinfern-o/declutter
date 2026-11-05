@@ -1,5 +1,5 @@
 """Pick TACO photos with wrappers and plastic bags, download them, and write YOLO-seg labels
-using our 19 classes (see LABELING.md). The output folder can be uploaded to Roboflow as is.
+using our classes (see LABELING.md). The output folder can be uploaded to Roboflow as is.
 
 TACO (CC BY 4.0): https://github.com/pedropro/TACO. Get its data/annotations.json first.
 

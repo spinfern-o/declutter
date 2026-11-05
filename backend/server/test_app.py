@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from detect import split
 from server.app import app
 
 client = TestClient(app)
@@ -18,6 +19,19 @@ def test_detect_returns_zoned_items():
         assert item["cutout"]
         x, y, w, h = item["box"]
         assert 0 <= x and 0 <= y and w > 0 and h > 0 and x + w <= 1 and y + h <= 1
+    for shelf in body["shelves"]:  # empty until the model is trained with the shelf class
+        x, y, w, h = shelf["box"]
+        assert 0 <= x and 0 <= y and w > 0 and h > 0 and x + w <= 1 and y + h <= 1
+    assert "Structure" not in body["zones"]
+
+
+def test_split_keeps_shelves_out_of_items_and_sorts_them():
+    zone_of = {"pen": "Office", "shelf": "Structure"}
+    found = [("shelf", 0.9, None, (0, 50, 10, 60)), ("pen", 0.8, None, (1, 1, 2, 2)),
+             ("shelf", 0.7, None, (0, 5, 10, 20)), ("mystery", 0.5, None, (3, 3, 4, 4))]
+    items, shelves = split(found, zone_of)
+    assert [d[0] for d in items] == ["pen", "mystery"]  # an unknown class stays an item
+    assert [d[3][1] for d in shelves] == [5, 50]
 
 
 def test_rejects_non_image():

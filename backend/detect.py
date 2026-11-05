@@ -5,13 +5,22 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageOps
 
 CLASSES = Path(__file__).parent / "train" / "classes.csv"
+STRUCTURE = "Structure"  # the zone of classes that are part of the furniture (shelf), not items to sort
 
 
 def load_zones():
-    """{class: zone} from classes.csv, plus the zones in file order."""
+    """{class: zone} from classes.csv, plus the item zones in file order."""
     with open(CLASSES, newline="") as f:
         zone_of = {row["class"]: row["zone"] for row in csv.DictReader(f)}
-    return zone_of, list(dict.fromkeys(zone_of.values()))
+    return zone_of, [z for z in dict.fromkeys(zone_of.values()) if z != STRUCTURE]
+
+
+def split(found, zone_of):
+    """Separate cutouts() output into items and shelves; shelves come back top to bottom."""
+    items, shelves = [], []
+    for detection in found:
+        (shelves if zone_of.get(detection[0]) == STRUCTURE else items).append(detection)
+    return items, sorted(shelves, key=lambda d: d[3][1])  # bbox top edge
 
 
 def upright(photo):

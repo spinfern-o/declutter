@@ -1,4 +1,4 @@
-"""Stateless API for the iOS app: one photo in, items with cutouts and zones out.
+"""Stateless API for the iOS app: one photo in, items with cutouts and zones out, plus the shelves.
 
 Run from the repo root: uvicorn server.app:app --port 8000
 """
@@ -13,7 +13,7 @@ from ultralytics import YOLO
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from detect import cutouts, load_zones, upright  # noqa: E402
+from detect import cutouts, load_zones, split, upright  # noqa: E402
 
 MAX_BYTES = 15 * 1024 * 1024
 THUMB = 256  # long side of each cutout sent back; keeps the response small
@@ -35,8 +35,13 @@ async def detect(photo: UploadFile):
 
     result = model(img, verbose=False)[0]
     width, height = img.size
+
+    def fractions(left, top, right, bottom):  # where it sat, as fractions of the photo, so the app can map it
+        return [round(v, 4) for v in (left / width, top / height, (right - left) / width, (bottom - top) / height)]
+
+    found, shelves = split(cutouts(result, img), zone_of)
     items = []
-    for name, conf, cutout, (left, top, right, bottom) in cutouts(result, img):
+    for name, conf, cutout, bbox in found:
         cutout.thumbnail((THUMB, THUMB))
         png = io.BytesIO()
         cutout.save(png, "PNG")
@@ -45,7 +50,10 @@ async def detect(photo: UploadFile):
             "zone": zone_of.get(name, "Misc"),  # a model/CSV mismatch must not break the app
             "confidence": round(conf, 3),
             "cutout": base64.b64encode(png.getvalue()).decode(),
-            # where the item sat, as fractions of the photo, so the app can draw it on its own copy
-            "box": [round(v, 4) for v in (left / width, top / height, (right - left) / width, (bottom - top) / height)],
+            "box": fractions(*bbox),
         })
-    return {"zones": zones, "items": items}
+    return {
+        "zones": zones,
+        "items": items,
+        "shelves": [{"box": fractions(*bbox), "confidence": round(conf, 3)} for _, conf, _, bbox in shelves],
+    }
