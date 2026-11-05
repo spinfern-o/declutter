@@ -8,14 +8,17 @@ final class Item {
     var zone: String
     var confidence: Double?
     @Attribute(.externalStorage) var cutout: Data?
+    var box: [Double]?  // where it sat in the photo: [x, y, w, h] as fractions; nil for manual and older items
     var space: Space?
 
-    init(name: String, className: String, zone: String, confidence: Double? = nil, cutout: Data? = nil) {
+    init(name: String, className: String, zone: String, confidence: Double? = nil, cutout: Data? = nil,
+         box: [Double]? = nil) {
         self.name = name
         self.className = className
         self.zone = zone
         self.confidence = confidence
         self.cutout = cutout
+        self.box = box
     }
 }
 

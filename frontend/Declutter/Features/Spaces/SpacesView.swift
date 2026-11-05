@@ -89,7 +89,7 @@ struct SpacesView: View {
                 for found in response.items {
                     space.items.append(Item(name: found.class.replacingOccurrences(of: "_", with: " "),
                                             className: found.class, zone: found.zone, confidence: found.confidence,
-                                            cutout: Data(base64Encoded: found.cutout)))
+                                            cutout: Data(base64Encoded: found.cutout), box: found.box))
                 }
                 try? context.save()
                 pending = nil

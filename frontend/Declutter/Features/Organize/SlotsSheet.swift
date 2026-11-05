@@ -74,6 +74,9 @@ struct SlotsSheet: View {
             if let original = slot.original { renamed[original] = name }
         }
         space.placement = space.placement.compactMapValues { renamed[$0] }  // zones on deleted slots get re-placed
+        space.slotRects = Dictionary(uniqueKeysWithValues: space.slotRects.compactMap { slot, rect in
+            renamed[slot].map { ($0, rect) }  // a renamed slot keeps its outline; a deleted one loses it
+        })
         space.slots = names
         try? context.save()
         dismiss()

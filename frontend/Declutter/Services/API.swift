@@ -6,6 +6,7 @@ struct DetectResponse: Decodable {
         let zone: String
         let confidence: Double
         let cutout: String  // base64 PNG
+        let box: [Double]?  // [x, y, w, h] as fractions of the photo; optional so older servers still decode
     }
 
     let zones: [String]
