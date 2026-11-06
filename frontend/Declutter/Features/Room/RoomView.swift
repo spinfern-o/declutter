@@ -55,7 +55,7 @@ struct RoomView: View {
             Button("Add Messy Spot", systemImage: "plus") { addingSpot = true }
         }
         .sheet(isPresented: $addingSpot) { SpotScanView(room: room) }
-        .sheet(item: $opened) { SpotSheet(space: $0, room: room) }
+        .sheet(item: $opened) { SpotSheet(space: $0, room: room, models: models, ratio: ratios[$0.persistentModelID] ?? 1) }
         .onChange(of: plan.placement, initial: true) { plan.save(in: context) }
         .task(id: [room.spaces.count, ModelStore.shared.version]) { await load(plan) }
     }
@@ -127,7 +127,7 @@ struct RoomView: View {
 
     /// An open box (front missing) standing on its own origin, front to +z, with the cabinet's shelves
     /// scaled to fill it and the items the room plan puts here on them.
-    private static func cabinet(_ space: Space, plan: RoomPlan, size: SIMD3<Float>, ratio: Double,
+    static func cabinet(_ space: Space, plan: RoomPlan, size: SIMD3<Float>, ratio: Double,
                                 models: [String: Entity]) -> Entity {
         let (w, h, d) = (size.x, size.y, size.z), t: Float = 0.02
         let holder = Entity()
