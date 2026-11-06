@@ -21,6 +21,13 @@ jobs:
       - run: gh release download model --pattern best.pt --dir backend/models
         env:
           GH_TOKEN: ${{ github.token }}
+      # the 3D item models live on the "models-3d" release. To ship a new or changed one:
+      #   gh release upload models-3d backend/models3d/<name>.usdz --clobber   (then redeploy)
+      - run: |
+          mkdir -p backend/models3d
+          gh release download models-3d --pattern '*.usdz' --dir backend/models3d || echo "no models-3d release yet"
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only
         working-directory: backend  # fly.toml, Dockerfile and the build context all live here

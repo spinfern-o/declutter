@@ -10,3 +10,5 @@ backend/train/runs/
 .vscode/
 __pycache__/
 backend/models/
+backend/models3d/*
+!backend/models3d/.gitkeep
