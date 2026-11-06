@@ -8,6 +8,7 @@ struct DeclutterApp: App {
         Organizer.selfCheck()
         CabinetLayout.selfCheck()
         ModelCatalog.selfCheck()
+        ModelStore.selfCheck()
         RoomGeometry.selfCheck()
         RoomOrganizer.selfCheck()
         #endif
@@ -19,6 +20,7 @@ struct DeclutterApp: App {
                 Tab("Rooms", systemImage: "square.split.bottomrightquarter") { RoomsView() }
                 Tab("Cabinets", systemImage: "cabinet") { SpacesView() }
             }
+            .task { await ModelStore.shared.sync() }  // new or changed 3D models from the server
         }
         .modelContainer(for: [Space.self, Room.self])
     }

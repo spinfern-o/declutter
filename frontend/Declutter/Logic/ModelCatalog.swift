@@ -1,11 +1,26 @@
 import Foundation
 
-/// Which of your 3D models (Resources/Models/<object>.usdz) an item gets. The file name is the object:
-/// a class name like "cardboard_box", or any object like "water_bottle" for items named that way.
+/// Which of your 3D models an item gets: downloaded from the server (ModelStore) or built into the app
+/// (Resources/Models). The file name is the object: a class name like "cardboard_box", or any object like
+/// "water_bottle" for items named that way.
 enum ModelCatalog {
-    static let objects: [String] = (Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) ?? [])
-        .map { $0.deletingPathExtension().lastPathComponent }
-        .sorted()
+    private(set) static var objects = list()
+
+    static func reload() { objects = list() }
+
+    private static func list() -> [String] {
+        let downloaded = (try? FileManager.default.contentsOfDirectory(at: ModelStore.folder, includingPropertiesForKeys: nil)) ?? []
+        let bundled = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) ?? []
+        return Set((downloaded + bundled).filter { $0.pathExtension == "usdz" }
+            .map { $0.deletingPathExtension().lastPathComponent }).sorted()
+    }
+
+    /// The model file: the server's copy when there is one, so updates win over a copy built into the app.
+    static func url(for object: String) -> URL? {
+        let downloaded = ModelStore.folder.appending(path: "\(object).usdz")
+        return FileManager.default.fileExists(atPath: downloaded.path) ? downloaded
+            : Bundle.main.url(forResource: object, withExtension: "usdz")
+    }
 
     /// A word in the item's name first (so renamed and manual items find theirs), then the model's
     /// class. nil means no model yet: the scene shows a plain box.

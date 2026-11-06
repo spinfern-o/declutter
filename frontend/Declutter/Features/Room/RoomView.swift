@@ -11,6 +11,7 @@ struct RoomView: View {
     @State private var opened: Space?
     @State private var models: [String: Entity] = [:]  // loaded once per object, cloned per item
     @State private var ratios: [PersistentIdentifier: Double] = [:]  // photo height / width per cabinet
+    @State private var loadedVersion = -1  // ModelStore version the loaded models came from
 
     var body: some View {
         // read here so any change re-runs `update` with fresh values
@@ -56,7 +57,7 @@ struct RoomView: View {
         .sheet(isPresented: $addingSpot) { SpotScanView(room: room) }
         .sheet(item: $opened) { SpotSheet(space: $0, room: room) }
         .onChange(of: plan.placement, initial: true) { plan.save(in: context) }
-        .task(id: room.spaces.count) { await load(plan) }
+        .task(id: [room.spaces.count, ModelStore.shared.version]) { await load(plan) }
     }
 
     private func load(_ plan: RoomPlan) async {
@@ -65,10 +66,11 @@ struct RoomView: View {
                 ratios[space.persistentModelID] = size.height / size.width
             }
         }
-        var loaded = models
+        var loaded = loadedVersion == ModelStore.shared.version ? models : [:]  // changed models: load them again
+        loadedVersion = ModelStore.shared.version
         for object in Set(plan.items.compactMap({ ModelCatalog.object(name: $0.name, className: $0.className) }))
         where loaded[object] == nil {
-            if let entity = try? await Entity(named: object) { loaded[object] = entity }
+            if let url = ModelCatalog.url(for: object), let entity = try? await Entity(contentsOf: url) { loaded[object] = entity }
         }
         models = loaded
     }
