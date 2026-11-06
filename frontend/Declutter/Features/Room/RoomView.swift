@@ -12,6 +12,12 @@ struct RoomView: View {
     @State private var models: [String: Entity] = [:]  // loaded once per object, cloned per item
     @State private var ratios: [PersistentIdentifier: Double] = [:]  // photo height / width per cabinet
     @State private var loadedVersion = -1  // ModelStore version the loaded models came from
+    @State private var dragging = Dragging()  // a class, so updating it mid-drag doesn't rebuild the scene
+
+    private final class Dragging {
+        var entity: Entity?
+        var grab: SIMD3<Float> = .zero  // finger point minus the cabinet's position, so it doesn't jump
+    }
 
     var body: some View {
         // read here so any change re-runs `update` with fresh values
@@ -32,6 +38,7 @@ struct RoomView: View {
             build(root, plan: plan, corners: corners, height: height, models: models, ratios: ratios)
         }
         .realityViewCameraControls(.orbit)
+        .highPriorityGesture(moveCabinet(plan))  // a drag on a cabinet moves it; elsewhere it orbits
         .gesture(SpatialTapGesture().targetedToAnyEntity().onEnded { value in
             if let i = Int(value.entity.name), plan.cabinets.indices.contains(i) { opened = plan.cabinets[i] }
         })
@@ -58,6 +65,34 @@ struct RoomView: View {
         .sheet(item: $opened) { SpotSheet(space: $0, room: room, models: models, ratio: ratios[$0.persistentModelID] ?? 1) }
         .onChange(of: plan.placement, initial: true) { plan.save(in: context) }
         .task(id: [room.spaces.count, ModelStore.shared.version]) { await load(plan) }
+    }
+
+    /// Drag a cabinet across the floor; on release its spot's x and z are saved, kept inside the room.
+    private func moveCabinet(_ plan: RoomPlan) -> some Gesture {
+        DragGesture()
+            .targetedToAnyEntity()
+            .onChanged { value in
+                let cabinet = value.entity
+                guard let root = cabinet.parent, Int(cabinet.name) != nil else { return }
+                // the floor: the horizontal plane at the room root's height
+                let floor = Transform(translation: [0, root.position(relativeTo: nil).y, 0]).matrix
+                guard let world = value.unproject(value.location, from: .local, to: .scene, ontoPlane: floor) else { return }
+                let point = root.convert(position: world, from: nil)
+                if dragging.entity !== cabinet {
+                    dragging.entity = cabinet
+                    dragging.grab = point - cabinet.position
+                }
+                cabinet.position = [point.x - dragging.grab.x, 0, point.z - dragging.grab.z]
+            }
+            .onEnded { value in
+                defer { dragging.entity = nil }
+                guard dragging.entity === value.entity, let i = Int(value.entity.name), plan.cabinets.indices.contains(i),
+                      var spot = plan.cabinets[i].spot, spot.count == 6 else { return }
+                spot[0] = Double(value.entity.position.x)
+                spot[1] = Double(value.entity.position.z)
+                plan.cabinets[i].spot = RoomGeometry.clamp(spot, in: room.corners)  // the rebuild puts it there
+                try? context.save()
+            }
     }
 
     private func load(_ plan: RoomPlan) async {
