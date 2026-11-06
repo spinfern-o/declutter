@@ -1,1 +1,0 @@
-train-6c-stage1 (2026-10-28): test fitness 0.362, replaced 0.218
