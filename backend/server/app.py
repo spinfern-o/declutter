@@ -3,11 +3,13 @@
 Run from the repo root: uvicorn server.app:app --port 8000
 """
 import base64
+import hashlib
 import io
 import sys
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi.staticfiles import StaticFiles
 from PIL import UnidentifiedImageError
 from ultralytics import YOLO
 
@@ -20,7 +22,23 @@ THUMB = 256  # long side of each cutout sent back; keeps the response small
 
 model = YOLO(ROOT / "models" / "best.pt")  # promote.py swaps this file; redeploy to ship a new model
 zone_of, zones = load_zones()
+MODELS3D = ROOT / "models3d"  # the user's .usdz item models; the deploy downloads them from the "models-3d" release
 app = FastAPI()
+app.mount("/models/files", StaticFiles(directory=MODELS3D, check_dir=False), name="models")
+_fingerprints: dict[tuple[str, int, int], str] = {}
+
+
+@app.get("/models")
+def models():
+    """Every 3D model with a fingerprint of its file, so the app downloads only new or changed ones."""
+    result = {}
+    for path in sorted(MODELS3D.glob("*.usdz")):
+        stat = path.stat()
+        key = (path.name, stat.st_size, stat.st_mtime_ns)
+        if key not in _fingerprints:  # hash each version of a file once, not on every request
+            _fingerprints[key] = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+        result[path.stem] = _fingerprints[key]
+    return {"models": result}
 
 
 @app.post("/detect")

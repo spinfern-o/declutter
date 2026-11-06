@@ -52,14 +52,14 @@ struct CabinetSceneView: View {
         }
         .navigationTitle("3D Cabinet")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task(id: ModelStore.shared.version) { await load() }  // again when the server's models change
     }
 
     private func load() async {
         if let size = UIImage(data: space.photo)?.size, size.width > 0 { heightRatio = size.height / size.width }
         var loaded: [String: Entity] = [:]
         for object in Set(space.items.compactMap({ ModelCatalog.object(name: $0.name, className: $0.className) })) {
-            if let entity = try? await Entity(named: object) { loaded[object] = entity }
+            if let url = ModelCatalog.url(for: object), let entity = try? await Entity(contentsOf: url) { loaded[object] = entity }
         }
         models = loaded
     }

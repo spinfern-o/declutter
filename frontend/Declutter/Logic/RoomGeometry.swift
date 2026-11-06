@@ -67,7 +67,26 @@ enum RoomGeometry {
         return [center.x, center.y, atan2(front.x, front.y), simd_distance(a, b), depth, height]
     }
 
+    /// A cabinet's spot moved so its footprint stays inside the room; yaw and size are kept.
+    // shortcut: clamps to the outline's bounding box, so an L-shaped room allows its missing corner
+    static func clamp(_ spot: [Double], in corners: [[Double]]) -> [Double] {
+        guard spot.count == 6, !corners.isEmpty else { return spot }
+        let (c, s) = (abs(cos(spot[2])), abs(sin(spot[2])))
+        let half = [c * spot[3] / 2 + s * spot[4] / 2, s * spot[3] / 2 + c * spot[4] / 2]  // footprint, room axes
+        var result = spot
+        for axis in 0..<2 {
+            let low = corners.map { $0[axis] }.min()! + half[axis], high = corners.map { $0[axis] }.max()! - half[axis]
+            result[axis] = low > high ? (low + high) / 2 : min(max(spot[axis], low), high)  // too big: center it
+        }
+        return result
+    }
+
     static func selfCheck() {
+        let box = [[0.0, 0], [4, 0], [4, 3], [0, 3]]
+        assert(clamp([2, 1.5, 0, 0.8, 0.45, 0.9], in: box) == [2, 1.5, 0, 0.8, 0.45, 0.9], "a spot inside the room is unchanged")
+        assert(clamp([-1, 9, 0, 0.8, 0.4, 0.9], in: box) == [0.4, 2.8, 0, 0.8, 0.4, 0.9], "a spot dragged past the walls comes back inside")
+        let turned = clamp([4, 1, Double.pi / 2, 0.8, 0.4, 0.9], in: box)
+        assert(abs(turned[0] - 3.8) < 1e-9 && turned[1] == 1, "a turned cabinet's footprint swaps width and depth")
         func near(_ a: [Double], _ b: [Double]) -> Bool { a.count == b.count && zip(a, b).allSatisfy { abs($0 - $1) < 1e-4 } }
         func near(_ a: [[Double]], _ b: [[Double]]) -> Bool { a.count == b.count && zip(a, b).allSatisfy { near($0, $1) } }
         func world(_ x: Float, _ z: Float) -> SIMD3<Float> { [x, -1.3, z] }  // the floor sits below the AR origin

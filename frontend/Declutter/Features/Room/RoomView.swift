@@ -11,6 +11,13 @@ struct RoomView: View {
     @State private var opened: Space?
     @State private var models: [String: Entity] = [:]  // loaded once per object, cloned per item
     @State private var ratios: [PersistentIdentifier: Double] = [:]  // photo height / width per cabinet
+    @State private var loadedVersion = -1  // ModelStore version the loaded models came from
+    @State private var dragging = Dragging()  // a class, so updating it mid-drag doesn't rebuild the scene
+
+    private final class Dragging {
+        var entity: Entity?
+        var grab: SIMD3<Float> = .zero  // finger point minus the cabinet's position, so it doesn't jump
+    }
 
     var body: some View {
         // read here so any change re-runs `update` with fresh values
@@ -31,6 +38,7 @@ struct RoomView: View {
             build(root, plan: plan, corners: corners, height: height, models: models, ratios: ratios)
         }
         .realityViewCameraControls(.orbit)
+        .highPriorityGesture(moveCabinet(plan))  // a drag on a cabinet moves it; elsewhere it orbits
         .gesture(SpatialTapGesture().targetedToAnyEntity().onEnded { value in
             if let i = Int(value.entity.name), plan.cabinets.indices.contains(i) { opened = plan.cabinets[i] }
         })
@@ -39,6 +47,12 @@ struct RoomView: View {
         .accessibilityActions {
             ForEach(plan.cabinets) { space in
                 Button("Open \(space.name)") { opened = space }
+                // the drag's VoiceOver counterpart: steps of 25 cm, as the room first appears (+x right, +z toward you)
+                ForEach(Self.steps, id: \.name) { step in
+                    Button("Move \(space.name) \(step.name)") {
+                        if let spot = space.spot, spot.count == 6 { move(space, x: spot[0] + step.dx, z: spot[1] + step.dz) }
+                    }
+                }
             }
         }
         .overlay(alignment: .bottom) {
@@ -54,9 +68,45 @@ struct RoomView: View {
             Button("Add Messy Spot", systemImage: "plus") { addingSpot = true }
         }
         .sheet(isPresented: $addingSpot) { SpotScanView(room: room) }
-        .sheet(item: $opened) { SpotSheet(space: $0, room: room) }
+        .sheet(item: $opened) { SpotSheet(space: $0, room: room, models: models, ratio: ratios[$0.persistentModelID] ?? 1) }
         .onChange(of: plan.placement, initial: true) { plan.save(in: context) }
-        .task(id: room.spaces.count) { await load(plan) }
+        .task(id: [room.spaces.count, ModelStore.shared.version]) { await load(plan) }
+    }
+
+    /// Drag a cabinet across the floor; on release its spot's x and z are saved, kept inside the room.
+    private func moveCabinet(_ plan: RoomPlan) -> some Gesture {
+        DragGesture()
+            .targetedToAnyEntity()
+            .onChanged { value in
+                let cabinet = value.entity
+                guard let root = cabinet.parent, Int(cabinet.name) != nil else { return }
+                // the floor: the horizontal plane at the room root's height
+                let floor = Transform(translation: [0, root.position(relativeTo: nil).y, 0]).matrix
+                guard let world = value.unproject(value.location, from: .local, to: .scene, ontoPlane: floor) else { return }
+                let point = root.convert(position: world, from: nil)
+                if dragging.entity !== cabinet {
+                    dragging.entity = cabinet
+                    dragging.grab = point - cabinet.position
+                }
+                cabinet.position = [point.x - dragging.grab.x, 0, point.z - dragging.grab.z]
+            }
+            .onEnded { value in
+                defer { dragging.entity = nil }
+                guard dragging.entity === value.entity, let i = Int(value.entity.name), plan.cabinets.indices.contains(i) else { return }
+                move(plan.cabinets[i], x: Double(value.entity.position.x), z: Double(value.entity.position.z))
+            }
+    }
+
+    private static let steps: [(name: String, dx: Double, dz: Double)] =
+        [("left", -0.25, 0), ("right", 0.25, 0), ("back", 0, -0.25), ("forward", 0, 0.25)]
+
+    /// Saves a cabinet's new floor position, kept inside the room; yaw and size stay. The rebuild puts it there.
+    private func move(_ space: Space, x: Double, z: Double) {
+        guard var spot = space.spot, spot.count == 6 else { return }
+        spot[0] = x
+        spot[1] = z
+        space.spot = RoomGeometry.clamp(spot, in: room.corners)
+        try? context.save()
     }
 
     private func load(_ plan: RoomPlan) async {
@@ -65,10 +115,11 @@ struct RoomView: View {
                 ratios[space.persistentModelID] = size.height / size.width
             }
         }
-        var loaded = models
+        var loaded = loadedVersion == ModelStore.shared.version ? models : [:]  // changed models: load them again
+        loadedVersion = ModelStore.shared.version
         for object in Set(plan.items.compactMap({ ModelCatalog.object(name: $0.name, className: $0.className) }))
         where loaded[object] == nil {
-            if let entity = try? await Entity(named: object) { loaded[object] = entity }
+            if let url = ModelCatalog.url(for: object), let entity = try? await Entity(contentsOf: url) { loaded[object] = entity }
         }
         models = loaded
     }
@@ -125,7 +176,7 @@ struct RoomView: View {
 
     /// An open box (front missing) standing on its own origin, front to +z, with the cabinet's shelves
     /// scaled to fill it and the items the room plan puts here on them.
-    private static func cabinet(_ space: Space, plan: RoomPlan, size: SIMD3<Float>, ratio: Double,
+    static func cabinet(_ space: Space, plan: RoomPlan, size: SIMD3<Float>, ratio: Double,
                                 models: [String: Entity]) -> Entity {
         let (w, h, d) = (size.x, size.y, size.z), t: Float = 0.02
         let holder = Entity()

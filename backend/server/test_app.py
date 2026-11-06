@@ -47,3 +47,18 @@ def test_split_keeps_one_shelf_per_level():
              ("shelf", 0.7, None, (2, 1, 100, 49))]  # near-duplicate of the top level
     _, shelves = split(found, {"shelf": "Structure"})
     assert [d[3] for d in shelves] == [(0, 0, 100, 50), (0, 50, 100, 100)]
+
+
+def test_models_are_listed_with_a_fingerprint_and_served():
+    path = Path(__file__).parent.parent / "models3d" / "zz_test.usdz"
+    try:
+        path.write_bytes(b"first")
+        first = client.get("/models").json()["models"]["zz_test"]
+        assert len(first) == 16 and int(first, 16) >= 0
+        assert client.get("/models/files/zz_test.usdz").content == b"first"
+        path.write_bytes(b"second version")
+        assert client.get("/models").json()["models"]["zz_test"] != first, "a changed file gets a new fingerprint"
+        assert client.get("/models/files/../app.py").status_code == 404
+        assert client.get("/models/files/%2e%2e/server/app.py").status_code == 404
+    finally:
+        path.unlink(missing_ok=True)
