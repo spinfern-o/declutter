@@ -24,15 +24,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       # the 3D item models live on the "models-3d" release. To ship a new or changed one (file names: a-z, 0-9, _):
       #   gh release upload models-3d <name>.usdz --clobber   then   gh workflow run fly-deploy.yml --ref main
-      # Only a missing release is skipped; a failed download fails the deploy, since shipping no models would
-      # make every phone delete the ones it has.
-      - run: |
-          mkdir -p backend/models3d
-          if gh release view models-3d >/dev/null 2>&1; then
-            gh release download models-3d --pattern '*.usdz' --dir backend/models3d
-          else
-            echo "no models-3d release yet"
-          fi
+      # Any failure fails the deploy, since shipping no models would make every phone delete the ones it has.
+      # So the release must always hold at least one .usdz.
+      - run: gh release download models-3d --pattern '*.usdz' --dir backend/models3d
         env:
           GH_TOKEN: ${{ github.token }}
       - uses: superfly/flyctl-actions/setup-flyctl@master
