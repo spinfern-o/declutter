@@ -33,8 +33,10 @@ final class ModelStore {
             saved[name] = nil
         }
         for name in download {
-            // a temp file moved into place, so a failed download never leaves a broken model; it's retried next sync
-            guard let (temp, response) = try? await URLSession.shared.download(from: API.server.appending(path: "models/files/\(name).usdz")),
+            // a temp file moved into place, so a failed download never leaves a broken model; it's retried next sync.
+            // The fingerprint in the address gives each version its own, so a cached old copy is never reused.
+            let url = API.server.appending(path: "models/files/\(name).usdz").appending(queryItems: [.init(name: "v", value: reply.models[name])])
+            guard let (temp, response) = try? await URLSession.shared.download(from: url),
                   (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
             let target = Self.folder.appending(path: "\(name).usdz")
             try? files.removeItem(at: target)
