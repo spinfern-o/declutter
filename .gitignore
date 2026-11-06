@@ -6,3 +6,7 @@ runs/
 xcuserdata/
 backend/train/dataset/
 backend/train/runs/
+.DS_Store
+.vscode/
+__pycache__/
+backend/models/
