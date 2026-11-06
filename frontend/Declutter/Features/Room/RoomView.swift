@@ -47,6 +47,12 @@ struct RoomView: View {
         .accessibilityActions {
             ForEach(plan.cabinets) { space in
                 Button("Open \(space.name)") { opened = space }
+                // the drag's VoiceOver counterpart: steps of 25 cm, as the room first appears (+x right, +z toward you)
+                ForEach(Self.steps, id: \.name) { step in
+                    Button("Move \(space.name) \(step.name)") {
+                        if let spot = space.spot, spot.count == 6 { move(space, x: spot[0] + step.dx, z: spot[1] + step.dz) }
+                    }
+                }
             }
         }
         .overlay(alignment: .bottom) {
@@ -86,13 +92,21 @@ struct RoomView: View {
             }
             .onEnded { value in
                 defer { dragging.entity = nil }
-                guard dragging.entity === value.entity, let i = Int(value.entity.name), plan.cabinets.indices.contains(i),
-                      var spot = plan.cabinets[i].spot, spot.count == 6 else { return }
-                spot[0] = Double(value.entity.position.x)
-                spot[1] = Double(value.entity.position.z)
-                plan.cabinets[i].spot = RoomGeometry.clamp(spot, in: room.corners)  // the rebuild puts it there
-                try? context.save()
+                guard dragging.entity === value.entity, let i = Int(value.entity.name), plan.cabinets.indices.contains(i) else { return }
+                move(plan.cabinets[i], x: Double(value.entity.position.x), z: Double(value.entity.position.z))
             }
+    }
+
+    private static let steps: [(name: String, dx: Double, dz: Double)] =
+        [("left", -0.25, 0), ("right", 0.25, 0), ("back", 0, -0.25), ("forward", 0, 0.25)]
+
+    /// Saves a cabinet's new floor position, kept inside the room; yaw and size stay. The rebuild puts it there.
+    private func move(_ space: Space, x: Double, z: Double) {
+        guard var spot = space.spot, spot.count == 6 else { return }
+        spot[0] = x
+        spot[1] = z
+        space.spot = RoomGeometry.clamp(spot, in: room.corners)
+        try? context.save()
     }
 
     private func load(_ plan: RoomPlan) async {
