@@ -1,155 +1,65 @@
-HOW TO USE THIS FILE
-
-1. In Terminal on the Mac, get the branch that holds the work:
-
-     cd /path/to/declutter
-     git fetch origin claude/relaxed-cori-99sm8y
-     git checkout claude/relaxed-cori-99sm8y
-
-2. Find a simulator ID (you will be asked for it):
-
-     xcrun simctl list devices available | grep iPhone
-
-3. In a second Terminal window, start the local server and leave it running:
-
-     cd /path/to/declutter/backend && ../.venv/bin/uvicorn server.app:app --port 8000
-
-4. Start Claude Code in the repo folder:
-
-     claude
-
-   For the Simulator taps and drags, you can let Claude do them with computer use, in the background only.
-   Turn it on first in the Claude desktop app (Settings -> This computer -> Computer use) and run the
-   session from the desktop app. If you skip this, Claude will ask you to do those steps by hand.
-
-5. Paste everything below the line into it. It starts with /plan, so Claude plans first and waits for
-   your approval before changing anything.
-
---------------------------------------------------------------------------------------------------------
-
-/plan Finish pull request #9 on this Mac. You are on its branch, claude/relaxed-cori-99sm8y.
+Make a plan first and wait for my approval before you change or run anything. Then finish pull request 9 on this Mac. You are on its branch, claude/relaxed-cori-99sm8y.
 
 Read these before planning:
-- CLAUDE.md
-- docs/handoff/2026-11-15-mac-handoff.txt (what was built, what was tested, and the full checklists)
-- docs/superpowers/specs/2026-11-15-yoloe-classes-and-3d-organize-design.md
-- docs/superpowers/specs/2026-11-15-marketplace-and-dorm-finder-design.md
+@CLAUDE.md
+@docs/handoff/2026-11-15-mac-handoff.txt
+@docs/superpowers/specs/2026-11-15-yoloe-classes-and-3d-organize-design.md
+@docs/superpowers/specs/2026-11-15-marketplace-and-dorm-finder-design.md
 
-The situation: a cloud session with no Xcode wrote this branch. The Python side was run there and its 8
-tests passed. None of the Swift has ever been compiled. Three things in it are also unfinished: how well the
-new YOLOE model detects on real cabinet photos is unknown, the six links and prices in
-backend/data/catalog.json have not been compared with the stores' pages, and the dorm finder has no dorms
-in it yet.
+The situation: a cloud session with no Xcode wrote this branch. The Python side was run there and its 8 tests passed. None of the Swift has ever been compiled. Three things are also unfinished: how well the new YOLOE model detects on real cabinet photos is unknown, the six links and prices in backend/data/catalog.json have not been compared with the stores' pages, and the dorm finder has no dorms in it yet.
 
-Plan these steps, in this order, and stop for my approval before doing them:
+Plan these steps, in this order:
 
-1. Build and self-check the app with frontend/scripts/selfcheck.sh <SIMULATOR_UDID>. Ask me for the
-   simulator ID if I haven't given it. Fix every compile error and failed assert, keeping the behavior the
-   two specs describe. Expect several small type errors. Tell me each thing you had to change.
+1. Build and self-check the app by running frontend/scripts/selfcheck.sh with my simulator ID. Ask me for the ID if I have not given it. Fix every compile error and failed assert, keeping the behavior the two specs describe. Expect several small type errors. Tell me each thing you had to change.
 
-2. Walk the Simulator checks listed in the handoff file: Organize opening the 3D cabinet, dragging one item
-   to another shelf, the Plan list agreeing with it, renaming and deleting a shelf, then the marketplace in
-   the DEBUG "Sample Room" (Add Furniture, drag, Turn a Quarter, Remove from Room, the desk as a solid block,
-   furniture hidden from the Cabinets tab, Find My Dorm saying no dorms have been added). The local server
-   must be running for the marketplace; it is at http://localhost:8000.
+2. Walk the Simulator checks listed in the handoff file. They are: Organize opening the 3D cabinet, dragging one item to another shelf, the Plan list agreeing with it, renaming and deleting a shelf, then the marketplace in the DEBUG Sample Room (Add Furniture, drag, Turn a Quarter, Remove from Room, the desk as a solid block, furniture hidden from the Cabinets tab, Find My Dorm saying no dorms have been added). The local server must be running on port 8000 of this Mac for the marketplace. If it is not running, tell me.
 
-   Do the tapping and dragging with computer use, in the background only. Ask for access to the Simulator
-   app and nothing else, use only the background tools, and never take over my whole screen, even if a tool
-   offers it. Try each tap and drag that way first. If a click or drag does not work, or computer use is not
-   available in this session, do not guess and do not say the check passed. Tell me exactly what to tap or
-   drag and what I should see, wait for me to do it and tell you what happened, then carry on. Use the same
-   approach for the Find My Dorm check in step 6.
+Do the tapping and dragging with computer use, in the background only. Ask for access to the Simulator app and nothing else, use only the background tools, and never take over my whole screen, even if a tool offers it. Try each tap and drag that way first. If a click or drag does not work, or computer use is not available in this session, do not guess and do not say the check passed. Tell me exactly what to tap or drag and what I should see, wait for me to do it and tell you what happened, then carry on. Use the same approach for the Find My Dorm check in step 6.
 
-3. Build and score the YOLOE model. From backend/: `../.venv/bin/python train/yoloe.py`, then
-   `../.venv/bin/python train/promote.py train/runs/yoloe-11l-seg <export.zip>`. Ask me for the path to my
-   newest Roboflow export. The current model has 18 classes and the export has 20, so promote.py will stop
-   and print a `cp` command. Do not run that `cp`. Instead show me YOLOE's overall score and its score for
-   `shelf`, and what YOLOE and the current model each find on a few of my real cabinet photos.
+3. Build and score the YOLOE model. From the backend folder, run train/yoloe.py with the virtual environment Python at ../.venv/bin/python, then run train/promote.py with train/runs/yoloe-11l-seg and the path to my newest Roboflow export. Ask me for that path. The current model has 18 classes and the export has 20, so promote.py will stop and print a cp command. Do not run that command. Instead show me YOLOE's overall score and its score for shelf, and what YOLOE and the current model each find on a few of my real cabinet photos.
 
-4. Check what YOLOE returns for `shelf` on a cabinet with several shelves. The app needs one box per shelf
-   level. If it returns the whole unit or wrong boxes, tell me before changing anything.
+4. Check what YOLOE returns for shelf on a cabinet with several shelves. The app needs one box per shelf level. If it returns the whole unit or wrong boxes, tell me before changing anything.
 
-5. For each of the six entries in backend/data/catalog.json, give me the link and the product, size and
-   price the file claims, so I can open the pages and compare. Change an entry only after I say what is off.
+5. For each of the six entries in backend/data/catalog.json, give me the link and the product, size and price the file claims, so I can open the pages and compare. Change an entry only after I say what is off.
 
-6. Fill the dorm finder. "Find My Dorm" on the Rooms tab makes a room from a school and hall, and it reads
-   backend/data/dorms.json, which is empty. Ask me for each dorm room I want in it: the school, the hall, the
-   room type (like "Double"), its width and length in feet, and where I got the numbers. Add only what I give
-   you, in this shape:
+6. Fill the dorm finder. Find My Dorm on the Rooms tab makes a room from a school and hall, and it reads backend/data/dorms.json, which is empty. Ask me for each dorm room I want in it: the school, the hall, the room type such as Double, its width and length in feet, and where I got the numbers. Add only what I give you, in the shape the README documents for dorms.json. Then run the backend tests, restart the local server, and check in the Simulator that Find My Dorm lists the school and hall, and that picking one makes a room of that size. Feet times 0.3048 is meters, so a 12 by 16 foot room is about 3.7 by 4.9 meters. If I have no sizes yet, leave the file empty and say so in your report. If I only have a housing page and not the numbers, read the page with me and let me confirm each size before it goes in.
 
-     {"dorms": [{"school": "...", "hall": "...", "room": "Double", "width_ft": 12, "length_ft": 16}]}
+7. From the backend folder, run ../.venv/bin/pytest -q once more, then commit the fixes and push to this same branch. That updates pull request 9.
 
-   Then run the backend tests, restart the local server, and check in the Simulator that Find My Dorm lists
-   the school and hall, and that picking one makes a room of that size (feet times 0.3048 is meters; a
-   12 x 16 ft room is about 3.7 x 4.9 m). If I have no sizes yet, leave the file empty and say so in the
-   report. If I only have a housing page and not the numbers, read the page with me and let me confirm each
-   size before it goes in.
+8. At the end, go through the list under POTENTIAL FEATURES below with me. Do not build any of them in this session. For the ones I pick, say what each would take and which should come first, and write a spec in docs/superpowers/specs only for the one I choose to do next.
 
-7. Run `cd backend && ../.venv/bin/pytest -q` once more, then commit the fixes and push to this same branch.
-   That updates pull request #9.
+Do not do these things. Do not merge the pull request, mark it ready, upload a model to the model release, or trigger the Fly deploy; those are mine to do. Do not add entries to backend/data/dorms.json or backend/data/catalog.json from memory; both hold only real data that I supply or confirm. Do not take over my whole screen with computer use; background control of the Simulator only. Do not start the Core ML work; it is parked, and the notes are at the end of the handoff file.
 
-8. At the end, go through the list under POTENTIAL FEATURES below with me. Do not build any of them in this
-   session. For the ones I pick, say what each would take and which should come first, and write a spec in
-   docs/superpowers/specs/ only for the one I choose to do next.
-
-Do not do these:
-- Do not merge the pull request, mark it ready, upload a model to the `model` release, or trigger the Fly
-  deploy. Those are mine to do.
-- Do not add entries to backend/data/dorms.json or backend/data/catalog.json from memory. Both hold only
-  real data that I supply or confirm.
-- Do not take over my whole screen with computer use. Background control of the Simulator only.
-- Do not start the Core ML work. It is parked; the notes are at the end of the handoff file.
-
-When you report back, lead with anything that did not work. Then: what selfcheck.sh printed, which
-Simulator checks passed, what you changed in the Swift, the model scores, which dorms were added, and what
-is left for me.
-
+When you report back, lead with anything that did not work. Then tell me what selfcheck.sh printed, which Simulator checks passed, what you changed in the Swift, the model scores, which dorms were added, and what is left for me.
 
 POTENTIAL FEATURES (ideas to choose from, none of them built or promised)
 
-Each of these comes from something already in the repo: a non-goal in a spec, a `// shortcut:` comment in the
-code, or a gap found while building. They are grouped by what they improve.
+Each of these comes from something already in the repo: a non-goal in a spec, a shortcut comment in the code, or a gap found while building.
 
 Finding items
-- Fine-tune YOLOE on my labeled photos. The model is used as it comes today, from text prompts alone. Training
-  it on the Roboflow export is the likely fix if it scores below my trained model, and the only real fix for
-  `shelf`, which my labels define as the open space of one level.
-- Run detection on the phone with Core ML and drop the Fly.io server. Parked, with notes at the end of
-  docs/handoff/2026-11-15-mac-handoff.txt. It makes the app work offline and removes the wait while the
-  server wakes up.
-- Let the user fix a wrong detection on the photo: tap an item to rename it, change its zone, or delete it,
-  and tap empty space to add one the model missed.
+Fine-tune YOLOE on my labeled photos. The model is used as it comes today, from text prompts alone. Training it on the Roboflow export is the likely fix if it scores below my trained model, and the only real fix for shelf, which my labels define as the open space of one level.
+Run detection on the phone with Core ML and drop the Fly.io server. Parked, with notes at the end of the handoff file. It makes the app work offline and removes the wait while the server wakes up.
+Let the user fix a wrong detection on the photo: tap an item to rename it, change its zone or delete it, and tap empty space to add one the model missed.
 
 The 3D cabinet
-- Show the "before": blocks first where the items sat in the photo, then move to their planned shelves. Each
-  item's photo position is already saved in Item.box.
-- Add a shelf board by hand in 3D for cabinets where no shelves were detected, instead of the list of names.
-- Let an item stay exactly where it is dropped on a shelf. Today the app lines each shelf up on its own.
-- Mark items used every day so they get the easiest shelf. The organizer uses item count as a stand-in today
-  (see the shortcut comment in Logic/Organizer.swift).
+Show the before: blocks first where the items sat in the photo, then move to their planned shelves. Each item's photo position is already saved in Item.box.
+Add a shelf board by hand in 3D for cabinets where no shelves were detected, instead of the list of names.
+Let an item stay exactly where it is dropped on a shelf. Today the app lines each shelf up on its own.
+Mark items used every day so they get the easiest shelf. The organizer uses item count as a stand-in today, noted by the shortcut comment in Logic/Organizer.swift.
 
 The room and the marketplace
-- Drag one item from a cabinet straight into another cabinet or a piece of furniture in the 3D room. Today
-  that goes through the list in the spot sheet.
-- Stop furniture and cabinets from overlapping, and snap a piece flat against a wall when it is dragged near
-  one. Today a piece is only kept inside the room's outline.
-- Keep pieces inside L-shaped rooms correctly. The clamp uses the outline's bounding box (see the shortcut
-  comment in Logic/RoomGeometry.swift), so an L-shaped room allows its missing corner.
-- Turn and remove photographed cabinets too. Only marketplace pieces have those actions.
-- A shopping list for the room: every piece added, each store's link, and the total price.
-- More of the catalog, with filters by store, kind and price, and a "fits in this gap" check against the
-  free floor. Every entry still has to come from one real store listing.
-- Real furniture shapes in 3D for the pieces whose stores publish a model. Today every piece is a box of its
-  real size.
-- Place a piece in the real room through the camera to see it at full size before buying. The app already
-  uses ARKit for outlining the room.
+Drag one item from a cabinet straight into another cabinet or a piece of furniture in the 3D room. Today that goes through the list in the spot sheet.
+Stop furniture and cabinets from overlapping, and snap a piece flat against a wall when it is dragged near one. Today a piece is only kept inside the room's outline.
+Keep pieces inside L-shaped rooms correctly. The clamp uses the outline's bounding box, noted by the shortcut comment in Logic/RoomGeometry.swift, so an L-shaped room allows its missing corner.
+Turn and remove photographed cabinets too. Only marketplace pieces have those actions.
+A shopping list for the room: every piece added, each store's link, and the total price.
+More of the catalog, with filters by store, kind and price, and a fits-in-this-gap check against the free floor. Every entry still has to come from one real store listing.
+Real furniture shapes in 3D for the pieces whose stores publish a model. Today every piece is a box of its real size.
+Place a piece in the real room through the camera to see it at full size before buying. The app already uses ARKit for outlining the room.
 
 Dorms and rooms
-- A dorm list with real layouts, not only floor sizes: where the door, window and closet are, and the
-  furniture the school already provides (bed, desk, dresser), placed in the room when it is made.
-- A source for dorm sizes that does not depend on me typing them in, such as a school's published floor
-  plans. Sizes still have to be confirmed before they go in.
-- Save more than one arrangement of a room and switch between them, to compare layouts.
-- Share a room with a roommate so both can arrange it. This needs accounts and a database, which the app
-  does not have: the server keeps nothing today.
-- Scan the room with LiDAR on phones that have it, instead of tapping corners.
+A dorm list with real layouts, not only floor sizes: where the door, window and closet are, and the furniture the school already provides, placed in the room when it is made.
+A source for dorm sizes that does not depend on me typing them in, such as a school's published floor plans. Sizes still have to be confirmed before they go in.
+Save more than one arrangement of a room and switch between them, to compare layouts.
+Share a room with a roommate so both can arrange it. This needs accounts and a database, which the app does not have, because the server keeps nothing today.
+Scan the room with LiDAR on phones that have it, instead of tapping corners.

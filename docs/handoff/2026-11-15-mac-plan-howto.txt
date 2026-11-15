@@ -1,0 +1,29 @@
+HOW TO USE THE MAC PLAN PROMPT
+
+The prompt is in 2026-11-15-mac-plan-prompt.txt. It is plain text on purpose: a command takes file @-mentions but no other @-mentions, slash commands, links, or inline formatting, and the earlier version had all of those, so it was not sent. Do not add any back. Paste the whole file, nothing else.
+
+1. In Terminal on the Mac, get the branch that holds the work:
+
+     cd /path/to/declutter
+     git fetch origin claude/relaxed-cori-99sm8y
+     git checkout claude/relaxed-cori-99sm8y
+
+2. Find a simulator ID (the prompt asks you for it):
+
+     xcrun simctl list devices available | grep iPhone
+
+3. In a second Terminal window, start the local server and leave it running:
+
+     cd /path/to/declutter/backend && ../.venv/bin/uvicorn server.app:app --port 8000
+
+4. Turn on computer use if you want Claude to do the Simulator taps and drags: in the Claude desktop app, Settings, then This computer, then Computer use. Run the session from the desktop app. Without it, Claude will ask you to do those steps by hand.
+
+5. Start Claude Code in the repo folder in plan mode:
+
+     claude --permission-mode plan
+
+   If that flag is not accepted, start claude and press Shift+Tab until it says plan mode. The prompt also asks Claude to plan first and wait for your approval, so it does not need a slash command.
+
+6. Paste the whole prompt file and send it.
+
+Have ready: the path to your newest Roboflow export zip, and the school, hall, room type, size in feet and source for each dorm room you want in the dorm finder.
