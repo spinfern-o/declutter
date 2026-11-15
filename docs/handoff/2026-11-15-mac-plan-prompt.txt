@@ -18,6 +18,10 @@ HOW TO USE THIS FILE
 
      claude
 
+   For the Simulator taps and drags, you can let Claude do them with computer use, in the background only.
+   Turn it on first in the Claude desktop app (Settings -> This computer -> Computer use) and run the
+   session from the desktop app. If you skip this, Claude will ask you to do those steps by hand.
+
 5. Paste everything below the line into it. It starts with /plan, so Claude plans first and waits for
    your approval before changing anything.
 
@@ -48,6 +52,13 @@ Plan these steps, in this order, and stop for my approval before doing them:
    the DEBUG "Sample Room" (Add Furniture, drag, Turn a Quarter, Remove from Room, the desk as a solid block,
    furniture hidden from the Cabinets tab, Find My Dorm saying no dorms have been added). The local server
    must be running for the marketplace; it is at http://localhost:8000.
+
+   Do the tapping and dragging with computer use, in the background only. Ask for access to the Simulator
+   app and nothing else, use only the background tools, and never take over my whole screen, even if a tool
+   offers it. Try each tap and drag that way first. If a click or drag does not work, or computer use is not
+   available in this session, do not guess and do not say the check passed. Tell me exactly what to tap or
+   drag and what I should see, wait for me to do it and tell you what happened, then carry on. Use the same
+   approach for the Find My Dorm check in step 6.
 
 3. Build and score the YOLOE model. From backend/: `../.venv/bin/python train/yoloe.py`, then
    `../.venv/bin/python train/promote.py train/runs/yoloe-11l-seg <export.zip>`. Ask me for the path to my
@@ -86,6 +97,7 @@ Do not do these:
   deploy. Those are mine to do.
 - Do not add entries to backend/data/dorms.json or backend/data/catalog.json from memory. Both hold only
   real data that I supply or confirm.
+- Do not take over my whole screen with computer use. Background control of the Simulator only.
 - Do not start the Core ML work. It is parked; the notes are at the end of the handoff file.
 
 When you report back, lead with anything that did not work. Then: what selfcheck.sh printed, which
