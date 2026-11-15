@@ -22,6 +22,7 @@ struct RoomView: View {
     var body: some View {
         // read here so any change re-runs `update` with fresh values
         let plan = RoomPlan(room: room)
+        let _ = plan.items.map(\.slot)  // an item moved onto its own shelf in the cabinet screen shows here too
         let corners = room.corners, height = Float(room.wallHeight)
         let models = models, ratios = ratios
 
@@ -213,12 +214,17 @@ struct RoomView: View {
         }
 
         let shelves = plan.shelves(of: space)
-        let items = plan.items(in: space).filter { shelves[$0.zone] != nil }
+        // the shelf a user gave one item only counts in the cabinet it was found in: shelf names repeat across cabinets
+        let placed: [(item: Item, slot: String)] = plan.items(in: space).compactMap { item in
+            let own = item.space?.persistentModelID == space.persistentModelID ? item.slot : nil
+            guard let slot = CabinetLayout.slot(override: own, zoneSlot: shelves[item.zone], slots: space.slots) else { return nil }
+            return (item, slot)
+        }
         let feet = CabinetLayout.footprints(
-            items: items.map { (id: $0.persistentModelID, zone: $0.zone, name: $0.name, box: $0.box) },
-            placement: shelves, rects: rects, heightRatio: ratio)
-        for item in items {
-            guard let foot = feet[item.persistentModelID], let v = rects[shelves[item.zone]!] else { continue }
+            items: placed.map { (id: $0.item.persistentModelID, slot: $0.slot, zone: $0.item.zone, name: $0.item.name, box: $0.item.box) },
+            rects: rects, heightRatio: ratio)
+        for (item, slot) in placed {
+            guard let foot = feet[item.persistentModelID], let v = rects[slot] else { continue }
             let side = Float(foot.width) * sx, room = Float(v[3]) * sy * 0.9
             let visual = Self.visual(item, side: side, room: room, models: models)
             visual.position = [x(foot.midX), floorY(v), (Float(foot.midY / CabinetLayout.depth) - 0.5) * (d - t) + t / 2]

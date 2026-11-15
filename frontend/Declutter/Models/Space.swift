@@ -28,6 +28,27 @@ final class Space {
         placement[zone] = slot
         try? modelContext?.save()
     }
+
+    /// Put one item on a shelf, apart from its zone; the 3D cabinet moves items through here.
+    func place(_ item: Item, in slot: String) {
+        item.slot = CabinetLayout.ownSlot(droppedOn: slot, zoneSlot: placement[item.zone])
+        try? modelContext?.save()
+    }
+
+    /// The shelf an item sits on in this cabinet's own plan; nil when its zone has none yet.
+    func shelf(of item: Item) -> String? {
+        CabinetLayout.slot(override: item.slot, zoneSlot: placement[item.zone], slots: slots)
+    }
+
+    /// Place any zone that has no slot yet; leaves the user's choices alone.
+    func replan() {
+        let counts = Dictionary(items.map { ($0.zone, 1) }, uniquingKeysWith: +)
+        let plan = Organizer.plan(counts: counts, zones: zones, slots: slots, current: placement)
+        if plan != placement {
+            placement = plan
+            try? modelContext?.save()
+        }
+    }
 }
 
 extension Space {

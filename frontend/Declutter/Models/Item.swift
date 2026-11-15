@@ -11,6 +11,7 @@ final class Item {
     var box: [Double]?  // where it sat in the photo: [x, y, w, h] as fractions; nil for manual and older items
     var space: Space?  // the cabinet it was detected in
     var destination: Space?  // the spot the user moved it to in its room; wins over the room plan
+    var slot: String?  // the shelf the user put this one item on, in its own cabinet; wins over its zone's shelf
 
     init(name: String, className: String, zone: String, confidence: Double? = nil, cutout: Data? = nil,
          box: [Double]? = nil) {

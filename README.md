@@ -10,8 +10,8 @@ backend/                 Python: the model, the server, and how the model is tra
   server/app.py          web API: POST /detect takes a photo, returns items, zones and shelves as JSON
   detect.py              shared code: fix photo rotation, cut out each item, read zones
   predict.py             command-line test: run the model on one photo, save cutouts to out/
-  train/                 training: labeling guide, classes.csv (the 20 classes and their zones), scripts, Colab notebook
-  models/best.pt         the trained model (not in git; lives on the "model" GitHub release)
+  train/                 training: labeling guide, classes.csv (the 20 classes, their zones and YOLOE prompts), scripts, Colab notebook
+  models/best.pt         the model in use: a training run or the YOLOE build (not in git; lives on the "model" GitHub release)
   Dockerfile, fly.toml   how the server is packaged and hosted on Fly.io
 
 frontend/                the iPhone app (SwiftUI)
@@ -42,8 +42,9 @@ Training: see `backend/train/LABELING.md`.
 
 ## Your 3D models
 
-The "View in 3D" screen builds the cabinet from the detected shelves and puts a model of each item
-on its planned shelf. Items without a model show as a gray box with their name.
+"Organize" opens the cabinet in 3D: it builds the cabinet from the detected shelves and puts a model of each
+item on its planned shelf. Items without a model show as a gray box with their name. Drag an item to another
+shelf to move just that item.
 
 - Name the file after the class in `backend/train/classes.csv`: `toothbrush.usdz`, `cardboard_box.usdz`.
 - Other objects work by name: `water_bottle.usdz` is used for any item whose name contains "water bottle"
