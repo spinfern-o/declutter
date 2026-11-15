@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from detect import split
-from server.app import app
+from server.app import app, model, zone_of
 
 client = TestClient(app)
 PHOTO = next((Path(__file__).parent.parent / "samples").rglob("*.jpg"))
@@ -23,6 +23,12 @@ def test_detect_returns_zoned_items():
         x, y, w, h = shelf["box"]
         assert 0 <= x and 0 <= y and w > 0 and h > 0 and x + w <= 1 and y + h <= 1
     assert "Structure" not in body["zones"]
+
+
+def test_model_knows_exactly_our_classes():
+    # a class the model has but classes.csv lacks would be filed under Misc; one it lacks is never found
+    assert set(model.names.values()) == set(zone_of)
+    assert "shelf" in model.names.values(), "without shelf the app can't build the cabinet's shelves"
 
 
 def test_split_keeps_shelves_out_of_items_and_sorts_them():

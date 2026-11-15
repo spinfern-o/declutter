@@ -1,6 +1,7 @@
 .venv/
 out/
 *.pt
+mobileclip_blt.ts
 samples/
 runs/
 xcuserdata/

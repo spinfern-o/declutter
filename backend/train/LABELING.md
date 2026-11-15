@@ -90,6 +90,20 @@ Run the commands below from the `backend/` folder.
   check the run's scores yourself before copying it.
 - If it was replaced, run `gh release upload model backend/models/best.pt --clobber` (from the repo root) so the next deploy from `main` ships it.
 
+## The YOLOE model (no training)
+
+`models/best.pt` can also be built from YOLOE, a model from Hugging Face that finds things from text instead
+of from labeled photos. It gets our 20 classes from the `prompts` column of `classes.csv`: a few plain phrases
+per class. It looks for each phrase on its own, and an item gets the class of the phrase that matched.
+Run these from `backend/`.
+
+- `python train/yoloe.py` builds it into `train/runs/yoloe-11l-seg/`. The first run downloads the model and
+  its text encoder (about 670 MB). To change what a class finds, edit its prompts and build again. Add
+  `yoloe-11s-seg.pt` or `yoloe-11m-seg.pt` for a smaller, faster model.
+- `python train/promote.py train/runs/yoloe-11l-seg <export.zip>` scores it on the same test photos as the
+  current model and replaces `models/best.pt` only if it scores higher.
+- If it was replaced, ship it like any other model: `gh release upload model backend/models/best.pt --clobber`.
+
 ## Decisions log
 
 Add a line here whenever you settle a confusing case, e.g.:
