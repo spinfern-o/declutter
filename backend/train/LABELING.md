@@ -103,6 +103,12 @@ Run these from `backend/`.
 - `python train/promote.py train/runs/yoloe-11l-seg <export.zip>` scores it on the same test photos as the
   current model and replaces `models/best.pt` only if it scores higher.
 - If it was replaced, ship it like any other model: `gh release upload model backend/models/best.pt --clobber`.
+- The first build installs the `clip` package and a few small ones (ftfy, regex, tqdm, wcwidth) into `.venv`
+  on its own.
+- `promote.py` can only score a YOLOE run when the export has labels for all 20 classes. Roboflow leaves
+  classes with no labels out of the export, and promote.py then stops.
+- YOLOE's shelf boxes cover whole pieces of furniture, not one level each. Shelves need a model trained on
+  labeled shelves.
 
 ## Decisions log
 
@@ -110,3 +116,5 @@ Add a line here whenever you settle a confusing case, e.g.:
 
 - Toothpaste tube → `bottle` (classes go by shape, not use).
 - Sticky-note pad → `paper`.
+- 2026-11-15: YOLOE tried, scored 0.378 against 0.311 for the current model on 10 test photos. Not shipped:
+  its shelf boxes cover whole pieces of furniture, not one level, and it finds far fewer items per photo.
