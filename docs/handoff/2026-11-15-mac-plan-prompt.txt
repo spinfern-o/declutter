@@ -1,0 +1,74 @@
+HOW TO USE THIS FILE
+
+1. In Terminal on the Mac, get the branch that holds the work:
+
+     cd /path/to/declutter
+     git fetch origin claude/relaxed-cori-99sm8y
+     git checkout claude/relaxed-cori-99sm8y
+
+2. Find a simulator ID (you will be asked for it):
+
+     xcrun simctl list devices available | grep iPhone
+
+3. In a second Terminal window, start the local server and leave it running:
+
+     cd /path/to/declutter/backend && ../.venv/bin/uvicorn server.app:app --port 8000
+
+4. Start Claude Code in the repo folder:
+
+     claude
+
+5. Paste everything below the line into it. It starts with /plan, so Claude plans first and waits for
+   your approval before changing anything.
+
+--------------------------------------------------------------------------------------------------------
+
+/plan Finish pull request #9 on this Mac. You are on its branch, claude/relaxed-cori-99sm8y.
+
+Read these before planning:
+- CLAUDE.md
+- docs/handoff/2026-11-15-mac-handoff.txt (what was built, what was tested, and the full checklists)
+- docs/superpowers/specs/2026-11-15-yoloe-classes-and-3d-organize-design.md
+- docs/superpowers/specs/2026-11-15-marketplace-and-dorm-finder-design.md
+
+The situation: a cloud session with no Xcode wrote this branch. The Python side was run there and its 8
+tests passed. None of the Swift has ever been compiled. Two things in it are also unconfirmed: how well the
+new YOLOE model detects on real cabinet photos, and whether the six links and prices in
+backend/data/catalog.json match the stores' pages.
+
+Plan these steps, in this order, and stop for my approval before doing them:
+
+1. Build and self-check the app with frontend/scripts/selfcheck.sh <SIMULATOR_UDID>. Ask me for the
+   simulator ID if I haven't given it. Fix every compile error and failed assert, keeping the behavior the
+   two specs describe. Expect several small type errors. Tell me each thing you had to change.
+
+2. Walk the Simulator checks listed in the handoff file: Organize opening the 3D cabinet, dragging one item
+   to another shelf, the Plan list agreeing with it, renaming and deleting a shelf, then the marketplace in
+   the DEBUG "Sample Room" (Add Furniture, drag, Turn a Quarter, Remove from Room, the desk as a solid block,
+   furniture hidden from the Cabinets tab, Find My Dorm saying no dorms have been added). The local server
+   must be running for the marketplace; it is at http://localhost:8000.
+
+3. Build and score the YOLOE model. From backend/: `../.venv/bin/python train/yoloe.py`, then
+   `../.venv/bin/python train/promote.py train/runs/yoloe-11l-seg <export.zip>`. Ask me for the path to my
+   newest Roboflow export. The current model has 18 classes and the export has 20, so promote.py will stop
+   and print a `cp` command. Do not run that `cp`. Instead show me YOLOE's overall score and its score for
+   `shelf`, and what YOLOE and the current model each find on a few of my real cabinet photos.
+
+4. Check what YOLOE returns for `shelf` on a cabinet with several shelves. The app needs one box per shelf
+   level. If it returns the whole unit or wrong boxes, tell me before changing anything.
+
+5. For each of the six entries in backend/data/catalog.json, give me the link and the product, size and
+   price the file claims, so I can open the pages and compare. Change an entry only after I say what is off.
+
+6. Run `cd backend && ../.venv/bin/pytest -q` once more, then commit the fixes and push to this same branch.
+   That updates pull request #9.
+
+Do not do these:
+- Do not merge the pull request, mark it ready, upload a model to the `model` release, or trigger the Fly
+  deploy. Those are mine to do.
+- Do not add entries to backend/data/dorms.json or backend/data/catalog.json from memory. Both hold only
+  real data that I supply or confirm.
+- Do not start the Core ML work. It is parked; the notes are at the end of the handoff file.
+
+When you report back, lead with anything that did not work. Then: what selfcheck.sh printed, which
+Simulator checks passed, what you changed in the Swift, the model scores, and what is left for me.
