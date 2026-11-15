@@ -25,6 +25,8 @@ zone_of, zones = load_zones()
 MODELS3D = ROOT / "models3d"  # the user's .usdz item models; the deploy downloads them from the "models-3d" release
 app = FastAPI()
 app.mount("/models/files", StaticFiles(directory=MODELS3D, check_dir=False), name="models")
+# the marketplace's furniture (catalog.json) and the dorm rooms (dorms.json): edit the file, redeploy, every phone has it
+app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
 _fingerprints: dict[tuple[str, int, int], str] = {}
 
 

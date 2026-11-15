@@ -51,6 +51,15 @@ WHAT IS WRITTEN BUT NEVER COMPILED (app)
 - Features/Space/SpaceView.swift, Features/Organize/OrganizeView.swift, Features/Organize/SlotsSheet.swift,
   Features/Room/RoomView.swift follow the same rule.
 
+- Marketplace and dorm finder (docs/superpowers/specs/2026-11-15-marketplace-and-dorm-finder-design.md), also
+  never compiled: Logic/Furniture.swift, Services/Catalog.swift, Features/Market/MarketView.swift,
+  Features/Market/FurnitureSheet.swift, Features/Rooms/DormFinderView.swift, and edits to RoomView, SpotSheet,
+  SpacesView, RoomsView and Space. The server side (backend/data/, the /data mount, two tests) was run in the
+  cloud: 8 tests passed.
+- The six catalog entries were read from search results on 2026-11-15. That session could not open the stores'
+  pages, so the links and prices have not been seen on the stores themselves.
+- backend/data/dorms.json is empty on purpose. The owner supplies real dorm room sizes; do not invent any.
+
 
 DO THIS
 
@@ -63,6 +72,17 @@ DO THIS
      - renaming that shelf keeps the item there; deleting the shelf returns it to its zone;
      - a cabinet with no shelves shows the "Set Up Cabinet" prompt;
      - a room's 3D view and its spot sheet preview show the moved item on the same shelf.
+   Marketplace, in the sample room (DEBUG "Sample Room"), with the local server running:
+     - Add Furniture lists the catalog with store, price and size;
+     - adding the KALLAX puts a teal open box in the middle of the room; it drags and stays inside the walls;
+     - tapping it opens the spot sheet with the store link, Turn a Quarter and Remove from Room, and items
+       can be moved into it;
+     - the MICKE desk is a solid block and opens the small furniture sheet;
+     - Remove takes a piece out, and items moved into it go back to the plan;
+     - furniture does not appear in the Cabinets tab, and deleting the room deletes its furniture;
+     - Find My Dorm says no dorms have been added (the list is empty).
+   Open each catalog link in a browser and compare the product, size and price with backend/data/catalog.json.
+   Fix or drop any entry that is off, and set `checked` to today.
 3. From backend/: `python train/yoloe.py`, then `python train/promote.py train/runs/yoloe-11l-seg <export.zip>`
    with the newest Roboflow export. The current model has 18 classes and the export has 20, so promote.py
    will stop and print a `cp` command instead of comparing. Do not copy it on your own. Report YOLOE's

@@ -2,13 +2,16 @@ import RealityKit
 import SwiftData
 import SwiftUI
 
-/// One room in 3D: its floor and walls, and each messy spot as an open, tinted box at its spot with its
-/// shelves and the items the room plan puts there. Tapping a spot opens its items; dragging orbits.
+/// One room in 3D: its floor and walls, each messy spot as an open, tinted box at its spot with its shelves
+/// and the items the room plan puts there, and furniture added from the marketplace at its real size.
+/// Tapping a spot or a piece opens it; dragging one moves it across the floor; dragging elsewhere orbits.
 struct RoomView: View {
     @Bindable var room: Room
     @Environment(\.modelContext) private var context
     @State private var addingSpot = false
+    @State private var shopping = false
     @State private var opened: Space?
+    @State private var removing: Space?  // a piece to delete once its sheet has closed
     @State private var models: [String: Entity] = [:]  // loaded once per object, cloned per item
     @State private var ratios: [PersistentIdentifier: Double] = [:]  // photo height / width per cabinet
     @State private var loadedVersion = -1  // ModelStore version the loaded models came from
@@ -48,6 +51,11 @@ struct RoomView: View {
         .accessibilityActions {
             ForEach(plan.cabinets) { space in
                 Button("Open \(space.name)") { opened = space }
+                if space.productURL != nil {
+                    Button("Turn \(space.name)") {
+                        if let spot = space.spot { space.spot = Furniture.turned(spot, in: room.corners); try? context.save() }
+                    }
+                }
                 // the drag's VoiceOver counterpart: steps of 25 cm, as the room first appears (+x right, +z toward you)
                 ForEach(Self.steps, id: \.name) { step in
                     Button("Move \(space.name) \(step.name)") {
@@ -66,10 +74,19 @@ struct RoomView: View {
         .navigationTitle(room.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            Button("Add Furniture", systemImage: "cart") { shopping = true }
             Button("Add Messy Spot", systemImage: "plus") { addingSpot = true }
         }
         .sheet(isPresented: $addingSpot) { SpotScanView(room: room) }
-        .sheet(item: $opened) { SpotSheet(space: $0, room: room, models: models, ratio: ratios[$0.persistentModelID] ?? 1) }
+        .sheet(isPresented: $shopping) { MarketView(room: room) }
+        .sheet(item: $opened, onDismiss: removePending) { space in
+            let remove = { removing = space; opened = nil }
+            if space.productURL != nil && space.slots.isEmpty {  // a desk or a chair: nothing goes in it
+                FurnitureSheet(space: space, room: room, remove: remove)
+            } else {
+                SpotSheet(space: space, room: room, models: models, ratio: ratios[space.persistentModelID] ?? 1, remove: remove)
+            }
+        }
         .onChange(of: plan.placement, initial: true) { plan.save(in: context) }
         .task(id: [room.spaces.count, ModelStore.shared.version]) { await load(plan) }
     }
@@ -107,6 +124,15 @@ struct RoomView: View {
         spot[0] = x
         spot[1] = z
         space.spot = RoomGeometry.clamp(spot, in: room.corners)
+        try? context.save()
+    }
+
+    /// Deletes the piece the user removed, after its sheet is gone; items moved into it go back to the plan.
+    private func removePending() {
+        guard let space = removing else { return }
+        removing = nil
+        room.spaces.removeAll { $0 == space }
+        context.delete(space)
         try? context.save()
     }
 
@@ -176,17 +202,23 @@ struct RoomView: View {
     }
 
     /// An open box (front missing) standing on its own origin, front to +z, with the cabinet's shelves
-    /// scaled to fill it and the items the room plan puts here on them.
+    /// scaled to fill it and the items the room plan puts here on them. Marketplace furniture has its own
+    /// tint, and a piece with no shelves (a desk) is one solid block.
     static func cabinet(_ space: Space, plan: RoomPlan, size: SIMD3<Float>, ratio: Double,
                                 models: [String: Entity]) -> Entity {
         let (w, h, d) = (size.x, size.y, size.z), t: Float = 0.02
         let holder = Entity()
-        let panels: [(SIMD3<Float>, SIMD3<Float>)] = [
-            ([w, h, t], [0, h / 2, -d / 2 + t / 2]), ([t, h, d], [-w / 2 + t / 2, h / 2, 0]),
-            ([t, h, d], [w / 2 - t / 2, h / 2, 0]), ([w, t, d], [0, h - t / 2, 0]), ([w, t, d], [0, t / 2, 0]),
-        ]
+        let tint = space.productURL == nil ? Self.messy : Self.bought
+        let solid = space.productURL != nil && space.slots.isEmpty
+        var panels: [(SIMD3<Float>, SIMD3<Float>)] = [(size, [0, h / 2, 0])]
+        if !solid {
+            panels = [
+                ([w, h, t], [0, h / 2, -d / 2 + t / 2]), ([t, h, d], [-w / 2 + t / 2, h / 2, 0]),
+                ([t, h, d], [w / 2 - t / 2, h / 2, 0]), ([w, t, d], [0, h - t / 2, 0]), ([w, t, d], [0, t / 2, 0]),
+            ]
+        }
         for (panelSize, position) in panels {
-            let panel = ModelEntity(mesh: .generateBox(size: panelSize), materials: [Self.messy])
+            let panel = ModelEntity(mesh: .generateBox(size: panelSize), materials: [tint])
             panel.position = position
             holder.addChild(panel)
         }
@@ -257,6 +289,7 @@ struct RoomView: View {
     private static let floor = SimpleMaterial(color: UIColor(white: 0.85, alpha: 1), roughness: 0.9, isMetallic: false)
     private static let wall = SimpleMaterial(color: UIColor(white: 0.95, alpha: 1), roughness: 0.9, isMetallic: false)
     private static let messy = SimpleMaterial(color: .systemOrange, roughness: 0.7, isMetallic: false)
+    private static let bought = SimpleMaterial(color: .systemTeal, roughness: 0.7, isMetallic: false)
     private static let board = SimpleMaterial(color: UIColor(red: 0.82, green: 0.70, blue: 0.55, alpha: 1), roughness: 0.8, isMetallic: false)
     private static let placeholder = SimpleMaterial(color: .systemGray3, roughness: 0.7, isMetallic: false)
 
@@ -266,7 +299,8 @@ struct RoomView: View {
             let count = plan.items(in: space).count
             return "\(space.name): \(count == 1 ? "1 item" : "\(count) items")"
         }
-        return (["\(room.name), \(spots.count == 1 ? "1 messy spot" : "\(spots.count) messy spots")"] + spots)
+        let messy = plan.cabinets.filter { $0.productURL == nil }.count  // furniture from the marketplace isn't a mess
+        return (["\(room.name), \(messy == 1 ? "1 messy spot" : "\(messy) messy spots")"] + spots)
             .joined(separator: ". ")
     }
 }

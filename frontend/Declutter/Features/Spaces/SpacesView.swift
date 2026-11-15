@@ -12,21 +12,25 @@ struct SpacesView: View {
     @State private var pending: Data?  // photo waiting on the server; kept so Retry doesn't lose it
     @State private var failed = false
 
+    /// The cabinets the user photographed; furniture from the marketplace only shows in its room.
+    private var cabinets: [Space] { spaces.filter { $0.productURL == nil } }
+
     var body: some View {
         NavigationStack(path: $path) {
             List {
-                ForEach(spaces) { space in
+                ForEach(cabinets) { space in
                     NavigationLink(value: space) {
                         LabeledContent(space.name, value: "\(space.items.count) items")
                     }
                 }
                 .onDelete { offsets in
-                    for i in offsets { context.delete(spaces[i]) }
+                    let gone = offsets.map { cabinets[$0] }
+                    for space in gone { context.delete(space) }
                     try? context.save()
                 }
             }
             .overlay {
-                if spaces.isEmpty {
+                if cabinets.isEmpty {
                     ContentUnavailableView("No cabinets yet", systemImage: "cabinet",
                                            description: Text("Photograph a cabinet and Declutter sorts what's inside."))
                 }

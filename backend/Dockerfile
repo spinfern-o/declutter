@@ -15,6 +15,7 @@ COPY server/ server/
 COPY train/classes.csv train/classes.csv
 COPY models/best.pt models/best.pt
 COPY models3d/ models3d/
+COPY data/ data/
 
 EXPOSE 8080
 CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8080"]

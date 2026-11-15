@@ -8,6 +8,7 @@ be dragged between shelves. Rooms hold several cabinets and organize across all 
 
 - `backend/` Python. `server/app.py` is the API (`POST /detect`, `GET /models`), `detect.py` the shared photo
   code, `train/` the labeling guide, class list, training and model-building scripts.
+- `backend/data/` what the server hands the app as files: the marketplace's furniture and the dorm rooms.
 - `frontend/Declutter/` SwiftUI. `Models/` saved data (SwiftData), `Logic/` pure rules, `Services/` the server
   client and 3D model downloads, `Features/` one folder per screen.
 - `docs/superpowers/specs/` one file per piece of work. Each is both the spec and the plan.
@@ -33,6 +34,10 @@ be dragged between shelves. Rooms hold several cabinets and organize across all 
 - New SwiftData fields are optional or have a plain default, so saved cabinets keep working. Do not add a
   UUID field with a default: every existing row would get the same value.
 - Names that come from the server become file names on the phone. Accept only `[a-z0-9_]+`.
+- The furniture catalog and the dorm list hold only real data: a product from one store listing that gives its
+  page, price and size; a dorm room with its real floor size. Never fill either with invented entries.
+- Furniture from the marketplace is a `Space` with `productURL` set. Code that means "a cabinet the user
+  photographed" must check for `productURL == nil`.
 - A spec is `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` with: Intent, Decided, Non-goals, Global
   constraints, then test-first tasks with expected results. The Superpowers plugin writes this format; write
   it by hand when the plugin is not available.
@@ -51,6 +56,7 @@ be dragged between shelves. Rooms hold several cabinets and organize across all 
 
 ## Open work
 
-See `docs/handoff/2026-11-15-mac-handoff.txt`: the app changes in the 2026-11-15 spec were written without
-Xcode and still need a build and a Simulator check, the YOLOE model has not been scored on the labeled
-photos, and the move from Fly.io to Core ML is parked with notes.
+See `docs/handoff/2026-11-15-mac-handoff.txt`: the app changes in the two 2026-11-15 specs were written
+without Xcode and still need a build and a Simulator check, the YOLOE model has not been scored on the
+labeled photos, the catalog's links and prices came from search results and need a look, `dorms.json` is
+empty, and the move from Fly.io to Core ML is parked with notes.
