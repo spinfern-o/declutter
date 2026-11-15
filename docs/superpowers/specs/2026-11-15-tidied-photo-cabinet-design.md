@@ -1,7 +1,6 @@
 # Organize shows your own photo, tidied
 
-Status: the direction (your photo as the backdrop, the items' cutouts rearranged) and the faded photo were
-chosen in chat on 2026-11-15. Everything under "My calls" is proposed and not yet approved. Nothing is built.
+Status: approved in chat on 2026-11-15, including the calls under "My calls". Nothing is built.
 This file is both the spec and the plan.
 
 ## Intent
@@ -38,7 +37,7 @@ This file is both the spec and the plan.
 - The end result should look like the photo, tidied. Items are their own cutouts, not blocks.
 - Fade the photo now (A1). Erasing the items (A2) comes later.
 
-## My calls (check these; each is a line to change, not a rebuild)
+## My calls (approved with the spec)
 - **A flat screen, not 3D.** The photo is flat, so the screen is a plain SwiftUI picture with the cutouts
   placed on it. No orbiting. This also keeps this screen clear of the two 3D redraw bugs still open in the
   room view.
