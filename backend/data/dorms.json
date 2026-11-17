@@ -1,0 +1,7 @@
+{
+  "dorms": [
+    {"school": "University of Michigan", "hall": "East Quadrangle", "room": "Deluxe Double", "width_ft": 12, "length_ft": 15},
+    {"school": "University of Michigan", "hall": "Mary Markley Hall", "room": "Double", "width_ft": 11, "length_ft": 12},
+    {"school": "University of Michigan", "hall": "South Quadrangle", "room": "Triple", "width_ft": 12, "length_ft": 17}
+  ]
+}

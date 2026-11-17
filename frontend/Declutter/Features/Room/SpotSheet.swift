@@ -9,6 +9,7 @@ struct SpotSheet: View {
     let room: Room
     let models: [String: Entity]  // the room's loaded item models, so the 3D cabinet doesn't load them again
     let ratio: Double  // its photo's height / width
+    let remove: () -> Void  // takes a piece from the marketplace out of the room
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var settingUp = false
@@ -21,6 +22,7 @@ struct SpotSheet: View {
             CabinetPreview(space: space, plan: plan, models: models, ratio: ratio)
                 .frame(height: 260)
             List {
+                if space.productURL != nil { FurnitureActions(space: space, room: room, remove: remove) }
                 Section("Here") {
                     let here = plan.items(in: space).byName
                     if space.slots.isEmpty {  // no shelves were detected in its photo: nothing can go here yet

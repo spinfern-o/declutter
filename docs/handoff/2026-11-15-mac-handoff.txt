@@ -1,0 +1,124 @@
+PROMPT FOR CLAUDE CODE, RUN ON THE MAC IN THE declutter REPO
+(written 2026-11-15 by a cloud session that could read and edit the repo but had no Xcode and no access to the Mac)
+
+Pull request #9 (branch claude/relaxed-cori-99sm8y) holds the work described in
+docs/superpowers/specs/2026-11-15-yoloe-classes-and-3d-organize-design.md. The backend half was built and
+tested in the cloud. The app half was written but never compiled. Your job is to finish what needs a Mac:
+build and check the app, and score the new model on the labeled photos. Read CLAUDE.md first.
+
+
+WHAT THE OWNER ASKED FOR, IN THEIR WORDS
+
+1. "search through hugging face for models that fit my app"; offered choices, they picked YOLOE.
+2. "add shelf to classes.csv and the training classes for names. make sure the imported hugging face
+   model has that extra class and rename all into my specific 20 classes for image detection."
+3. "i want to add a shelf so that people can move items inside the shelf." Dragging an item should move
+   only that item to the shelf it is dropped on, with the app still lining items up.
+4. "the organized should be a 3d version of the before cluttered space and the user can move it around.
+   it can be grey blocks currently without 3d models inside." Asked what Organize should open: "do the
+   open 3d cabinet but the gray blocks and shelves are 3d". Blocks start already organized.
+5. Fly.io stays for now. Moving detection onto the phone with Core ML is parked (notes at the end).
+
+
+WHAT IS DONE AND TESTED (backend)
+
+- backend/train/classes.csv has a `prompts` column: a few plain phrases per class.
+- backend/train/yoloe.py builds a YOLOE checkpoint from those prompts into
+  train/runs/<checkpoint>/weights/best.pt. Every phrase is looked for on its own and a class scores as high
+  as its best phrase. The saved file reports exactly the 20 class names and needs no text encoder.
+- backend/server/test_app.py has a new test: the model in use must know exactly the classes in classes.csv.
+- Measured in the cloud session:
+    - the deployed model on the `model` release has 18 classes; it lacks `shelf` and `battery`, so the new
+      test fails on it and passes with the YOLOE build (6 passed);
+    - the built file loads through plain YOLO("best.pt") as YOLOE and predicts without the text encoder;
+    - promote.py runs on it unmodified and its scoring reads the 20 classes;
+    - averaging a class's phrase embeddings (the first plan) does not work for classes that hold different
+      things: a bus fell from 0.96 to 0.10. That is why each phrase is scored on its own.
+- Not known: how well YOLOE finds things in real cabinet photos. On one blurry desk photo it missed a
+  pencil that the current trained model found, and plain YOLOE with the word "pencil" missed it too. No
+  photo with shelves was available, so `shelf` detection is untested. On a 4-core cloud CPU the large
+  checkpoint took about four times as long per photo as the current model.
+
+
+WHAT IS WRITTEN BUT NEVER COMPILED (app)
+
+- Models/Item.swift: `slot`, the shelf the user put this one item on. Models/Space.swift: place(_ item:in:),
+  shelf(of:), replan().
+- Logic/CabinetLayout.swift: slot(override:zoneSlot:slots:), ownSlot(droppedOn:zoneSlot:), footprints() now
+  takes each item's shelf; new asserts in selfCheck().
+- Features/Cabinet3D/CabinetSceneView.swift: Organize opens it; blocks are tagged by item; a drag moves one
+  item; a Plan button pushes the list; it replans on appear and prompts for shelves when there are none.
+- Features/Space/SpaceView.swift, Features/Organize/OrganizeView.swift, Features/Organize/SlotsSheet.swift,
+  Features/Room/RoomView.swift follow the same rule.
+
+- Marketplace and dorm finder (docs/superpowers/specs/2026-11-15-marketplace-and-dorm-finder-design.md), also
+  never compiled: Logic/Furniture.swift, Services/Catalog.swift, Features/Market/MarketView.swift,
+  Features/Market/FurnitureSheet.swift, Features/Rooms/DormFinderView.swift, and edits to RoomView, SpotSheet,
+  SpacesView, RoomsView and Space. The server side (backend/data/, the /data mount, two tests) was run in the
+  cloud: 8 tests passed.
+- The six catalog entries were read from search results on 2026-11-15. That session could not open the stores'
+  pages, so the links and prices have not been seen on the stores themselves.
+- backend/data/dorms.json is empty on purpose. The owner supplies real dorm room sizes; do not invent any.
+
+
+DO THIS
+
+1. Run frontend/scripts/selfcheck.sh <SIMULATOR_UDID>. Fix any compile error or failed assert, keeping the
+   behavior in the spec. Expect small type-checking issues; none of this has seen a compiler.
+2. In the Simulator, with a cabinet that has several items of one zone:
+     - Organize opens the cabinet in 3D with gray blocks on its shelves;
+     - dragging one item to another shelf moves only that item, and it is still there after relaunch;
+     - the Plan list shows it under its new shelf, and the swipe sends it back;
+     - renaming that shelf keeps the item there; deleting the shelf returns it to its zone;
+     - a cabinet with no shelves shows the "Set Up Cabinet" prompt;
+     - a room's 3D view and its spot sheet preview show the moved item on the same shelf.
+   Marketplace, in the sample room (DEBUG "Sample Room"), with the local server running:
+     - Add Furniture lists the catalog with store, price and size;
+     - adding the KALLAX puts a teal open box in the middle of the room; it drags and stays inside the walls;
+     - tapping it opens the spot sheet with the store link, Turn a Quarter and Remove from Room, and items
+       can be moved into it;
+     - the MICKE desk is a solid block and opens the small furniture sheet;
+     - Remove takes a piece out, and items moved into it go back to the plan;
+     - furniture does not appear in the Cabinets tab, and deleting the room deletes its furniture;
+     - Find My Dorm says no dorms have been added (the list is empty).
+   Open each catalog link in a browser and compare the product, size and price with backend/data/catalog.json.
+   Fix or drop any entry that is off, and set `checked` to today.
+3. From backend/: `python train/yoloe.py`, then `python train/promote.py train/runs/yoloe-11l-seg <export.zip>`
+   with the newest Roboflow export. The current model has 18 classes and the export has 20, so promote.py
+   will stop and print a `cp` command instead of comparing. Do not copy it on your own. Report YOLOE's
+   overall score and its score for `shelf`, show what it finds on a few real cabinet photos next to the
+   current model, and let the owner decide.
+4. Look at what YOLOE returns for `shelf` on a shelved cabinet. The app needs one box per level
+   (CabinetLayout.slots(fromShelves:)). If it returns the whole unit or wrong boxes, empty the `shelf`
+   prompts in classes.csv and rebuild: with no shelves detected the app asks the user for them, which is
+   better than wrong ones. Then the class test needs `shelf` handled another way; raise that with the owner.
+
+If YOLOE scores poorly, the follow-up is fine-tuning it on the labeled photos (Ultralytics has
+YOLOEPESegTrainer for linear probing). That is not part of this work; propose it, don't start it.
+
+
+PARKED: CORE ML (do not build now)
+
+The owner first asked to move from Fly.io to Core ML, then chose to do the shelf work first. For later:
+Ultralytics exports the YOLOE checkpoint to a single .mlpackage with the same 20 classes
+(`format="coreml"`, runs on macOS or Linux, needs coremltools >= 9.0; pass `quantize=16` or it stays
+32-bit and twice the size). Check that the head's fold (Unflatten, MaxPool3d, Flatten) converts. The app
+then needs a Swift decoder for the raw outputs (boxes, NMS, masks from the 32 prototypes, plus the shelf
+rules now in backend/detect.py `split`). The 3D item models can come straight from the public `models-3d`
+GitHub release: its API lists each asset with a sha256 digest whose first 16 hex characters equal the
+fingerprint the server sends today, so ModelStore.plan() works unchanged. After that backend/server/, the
+Dockerfile, fly.toml and the deploy workflow can be deleted. Ultralytics and YOLOE are AGPL-3.0, which
+matters for a closed-source App Store release.
+
+Other Hugging Face models considered and why they lost: hugging-mac/yolov8-seg-coreml (COCO's 80 classes
+only), mlboydaisuke/MobileSAM-CoreML plus apple/coreml-mobileclip (works without training but two models
+and a bigger rewrite), apple/coreml-sam2.1-tiny (needs a tap per item),
+apple/coreml-detr-semantic-segmentation (doesn't separate one item from the next),
+mlboydaisuke/RF-DETR-CoreAI (.aimodel, iOS 27 only; the app targets iOS 26). These came from web search;
+huggingface.co was blocked in the cloud session, so the model cards were not opened.
+
+
+WHEN YOU REPORT BACK
+
+Say what selfcheck.sh printed, which Simulator checks passed, what you had to fix in the Swift, and the
+model scores. Lead with anything that did not work.

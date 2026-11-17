@@ -1,0 +1,23 @@
+{
+  "checked": "2026-11-15",
+  "products": [
+    {"id": "ikea_kallax_2x2_white", "name": "KALLAX shelf unit, white", "store": "IKEA",
+     "url": "https://www.ikea.com/us/en/p/kallax-shelf-unit-white-20275814/",
+     "price": 44.99, "size_in": [30.125, 15.375, 30.125], "kind": "storage", "levels": 2},
+    {"id": "ikea_billy_bookcase_white", "name": "BILLY bookcase, white", "store": "IKEA",
+     "url": "https://www.ikea.com/us/en/p/billy-bookcase-white-20522046/",
+     "price": 79.00, "size_in": [31.5, 11, 79.5], "kind": "storage", "levels": 6},
+    {"id": "ikea_alex_drawer_unit_white", "name": "ALEX drawer unit, white", "store": "IKEA",
+     "url": "https://www.ikea.com/us/en/p/alex-drawer-unit-white-00473546/",
+     "price": 95.00, "size_in": [14.125, 22.875, 27.5], "kind": "storage", "levels": 5},
+    {"id": "ikea_raskog_cart_black", "name": "RÅSKOG utility cart, black", "store": "IKEA",
+     "url": "https://www.ikea.com/us/en/p/raskog-utility-cart-black-40582181/",
+     "price": 39.99, "size_in": [17.75, 13.75, 30.375], "kind": "storage", "levels": 3},
+    {"id": "target_room_essentials_3_shelf_bookcase_black", "name": "3 Shelf Bookcase, black (Room Essentials)", "store": "Target",
+     "url": "https://www.target.com/p/3-shelf-bookcase-black-room-essentials-8482/-/A-54358450",
+     "price": 28.00, "size_in": [24.49, 9.45, 35.98], "kind": "storage", "levels": 3},
+    {"id": "ikea_micke_desk_white", "name": "MICKE desk, white", "store": "IKEA",
+     "url": "https://www.ikea.com/us/en/p/micke-desk-white-80213074/",
+     "price": 99.99, "size_in": [41.375, 19.625, 29.5], "kind": "furniture"}
+  ]
+}

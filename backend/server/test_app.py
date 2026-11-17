@@ -1,9 +1,10 @@
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from detect import split
-from server.app import app
+from server.app import app, model, zone_of
 
 client = TestClient(app)
 PHOTO = next((Path(__file__).parent.parent / "samples").rglob("*.jpg"))
@@ -23,6 +24,12 @@ def test_detect_returns_zoned_items():
         x, y, w, h = shelf["box"]
         assert 0 <= x and 0 <= y and w > 0 and h > 0 and x + w <= 1 and y + h <= 1
     assert "Structure" not in body["zones"]
+
+
+def test_model_knows_exactly_our_classes():
+    # a class the model has but classes.csv lacks would be filed under Misc; one it lacks is never found
+    assert set(model.names.values()) == set(zone_of)
+    assert "shelf" in model.names.values(), "without shelf the app can't build the cabinet's shelves"
 
 
 def test_split_keeps_shelves_out_of_items_and_sorts_them():
@@ -62,3 +69,23 @@ def test_models_are_listed_with_a_fingerprint_and_served():
         assert client.get("/models/files/%2e%2e/server/app.py").status_code == 404
     finally:
         path.unlink(missing_ok=True)
+
+
+def test_catalog_lists_real_products_the_room_can_place():
+    catalog = client.get("/data/catalog.json").json()
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", catalog["checked"]), "the day the prices were read off the stores' pages"
+    products = catalog["products"]
+    assert products and len({p["id"] for p in products}) == len(products)
+    for p in products:
+        assert re.fullmatch(r"[a-z0-9_]+", p["id"]) and p["name"] and p["store"]
+        assert p["url"].startswith("https://"), "the app only opens secure store pages"
+        assert p["price"] > 0
+        assert len(p["size_in"]) == 3 and all(1 <= v <= 120 for v in p["size_in"]), "width, depth, height in inches"
+        assert p["kind"] in ("storage", "furniture")
+        assert p["kind"] != "storage" or p["levels"] >= 1, "storage needs shelves for the room plan to fill"
+
+
+def test_dorms_have_a_school_a_hall_and_a_floor_size():
+    for d in client.get("/data/dorms.json").json()["dorms"]:  # empty until real room sizes are supplied
+        assert d["school"] and d["hall"]
+        assert 5 <= d["width_ft"] <= 60 and 5 <= d["length_ft"] <= 60

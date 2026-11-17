@@ -6,7 +6,6 @@ struct OrganizeView: View {
     @Bindable var space: Space
     @Environment(\.modelContext) private var context
     @State private var editingSlots = false
-    @State private var viewing3D = false
     @State private var moves = 0  // haptic trigger
 
     private var counts: [String: Int] {
@@ -37,12 +36,20 @@ struct OrganizeView: View {
                             Text("Free space").foregroundStyle(.secondary)
                         } else {
                             zoneRow(zone, in: slot)
-                            ForEach(space.items.filter { $0.zone == zone }.byName) { item in
+                            ForEach(space.items.filter { $0.zone == zone && space.shelf(of: $0) == slot }.byName) { item in
                                 ItemRow(item: item).padding(.leading)
                             }
                         }
                     }
                     .dropDestination(for: String.self) { dropped, _ in drop(dropped, in: slot) }
+                    // items dragged here one by one in the 3D cabinet, away from their zone's shelf
+                    ForEach(movedItems(in: slot)) { item in
+                        ItemRow(item: item)
+                            .swipeActions {
+                                Button("Back with \(item.zone)", systemImage: "arrow.uturn.backward") { sendBack(item) }
+                            }
+                            .accessibilityAction(named: "Back with \(item.zone)") { sendBack(item) }
+                    }
                 }
             }
         }
@@ -62,11 +69,12 @@ struct OrganizeView: View {
         .navigationTitle("Plan")
         .toolbar {
             Menu {
-                Button("View in 3D", systemImage: "cube") { viewing3D = true }
                 Button("Edit Slots", systemImage: "square.split.1x2") { editingSlots = true }
                 Button("Re-sort", systemImage: "arrow.triangle.2.circlepath") {
                     space.placement = [:]
-                    replan()
+                    for item in space.items { item.slot = nil }  // items moved one by one go back with their zone
+                    space.replan()
+                    try? context.save()
                 }
             } label: {
                 Label("Options", systemImage: "ellipsis")
@@ -74,17 +82,16 @@ struct OrganizeView: View {
             .disabled(space.slots.isEmpty)
         }
         .sheet(isPresented: $editingSlots) { SlotsSheet(space: space) }
-        .navigationDestination(isPresented: $viewing3D) { CabinetSceneView(space: space) }
         .sensoryFeedback(.success, trigger: moves)
         .onAppear {
             if space.slots.isEmpty { editingSlots = true }
-            replan()
+            space.replan()
         }
-        .onChange(of: space.slots) { replan() }
+        .onChange(of: space.slots) { space.replan() }
     }
 
     private func zoneRow(_ zone: String, in slot: String) -> some View {
-        let count = counts[zone, default: 0]
+        let count = space.items.filter { $0.zone == zone && space.shelf(of: $0) == slot }.count  // not the ones moved away
         let countText = count == 1 ? "1 item" : "\(count) items"
         let others = space.slots.filter { $0 != slot }
         return LabeledContent {
@@ -129,12 +136,16 @@ struct OrganizeView: View {
         moves += 1
     }
 
-    /// Place any zone that has no slot yet; leaves the user's choices alone.
-    private func replan() {
-        let plan = Organizer.plan(counts: counts, zones: space.zones, slots: space.slots, current: space.placement)
-        if plan != space.placement {
-            space.placement = plan
-            try? context.save()
-        }
+    /// Items the user put on this shelf one by one while their zone sits on another.
+    private func movedItems(in slot: String) -> [Item] {
+        space.items
+            .filter { $0.zone != Organizer.tossZone && space.placement[$0.zone] != slot && space.shelf(of: $0) == slot }
+            .byName
+    }
+
+    private func sendBack(_ item: Item) {
+        item.slot = nil
+        try? context.save()
+        moves += 1
     }
 }

@@ -16,6 +16,8 @@ final class Space {
     var spot: [Double]?  // where it stands in its room: [x, z, yaw, width, depth, height], room frame (see Room)
     var roomPlacement: [String: String] = [:]  // zone -> shelf: this cabinet's part of its room's plan (RoomOrganizer)
     @Relationship(deleteRule: .nullify, inverse: \Item.destination) var movedHere: [Item] = []  // items moved here from elsewhere in the room
+    var productURL: String?  // its page at the store, for a piece added from the marketplace; nil = a photographed cabinet
+    var productStore: String?  // the store's name, for the link's label
 
     init(name: String, photo: Data, zones: [String]) {
         self.name = name
@@ -28,9 +30,46 @@ final class Space {
         placement[zone] = slot
         try? modelContext?.save()
     }
+
+    /// Put one item on a shelf, apart from its zone; the 3D cabinet moves items through here.
+    func place(_ item: Item, in slot: String) {
+        item.slot = CabinetLayout.ownSlot(droppedOn: slot, zoneSlot: placement[item.zone])
+        try? modelContext?.save()
+    }
+
+    /// The shelf an item sits on in this cabinet's own plan; nil when its zone has none yet.
+    func shelf(of item: Item) -> String? {
+        CabinetLayout.slot(override: item.slot, zoneSlot: placement[item.zone], slots: slots)
+    }
+
+    /// Place any zone that has no slot yet; leaves the user's choices alone.
+    func replan() {
+        let counts = Dictionary(items.map { ($0.zone, 1) }, uniquingKeysWith: +)
+        let plan = Organizer.plan(counts: counts, zones: zones, slots: slots, current: placement)
+        if plan != placement {
+            placement = plan
+            try? modelContext?.save()
+        }
+    }
 }
 
 extension Space {
+    /// A piece from the marketplace, standing in the middle of the room at its real size. It has no photo and
+    /// no items of its own; a storage piece gets shelves, so the room plan and the user can put items in it.
+    static func furniture(_ product: Product, in room: Room, context: ModelContext) -> Space {
+        let space = Space(name: product.name, photo: Data(), zones: [])
+        context.insert(space)
+        space.productURL = product.url
+        space.productStore = product.store
+        if product.kind == "storage" {
+            (space.slots, space.slotRects) = CabinetLayout.slots(fromShelves: Furniture.shelves(product.levels ?? 1))
+        }
+        space.room = room
+        space.spot = Furniture.spot(size: Furniture.meters(product.size_in), in: room.corners)
+        try? context.save()
+        return space
+    }
+
     /// A cabinet from a detection reply: its items, and its detected shelves as slots when there are any.
     static func make(name: String, photo: Data, response: DetectResponse, in context: ModelContext) -> Space {
         let space = Space(name: name, photo: photo, zones: response.zones)

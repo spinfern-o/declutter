@@ -74,7 +74,7 @@ struct SpaceView: View {
             .padding(.horizontal)
             .disabled(space.items.isEmpty)
         }
-        .navigationDestination(isPresented: $organizing) { OrganizeView(space: space) }
+        .navigationDestination(isPresented: $organizing) { CabinetSceneView(space: space) }
         .sheet(isPresented: $adding) { AddItemSheet(space: space) }
         .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Name", text: $newName)

@@ -40,6 +40,15 @@ names = list(data["names"].values()) if isinstance(data["names"], dict) else dat
 data.update(path=str(root), train="train/images", val="valid/images", test="test/images")
 (tmp / "data.yaml").write_text(yaml.safe_dump(data))
 
+new_names = list(YOLO(new).names.values())
+if new_names != names:
+    # a YOLOE build has its classes baked in and crashes the validator on any other list
+    missing = [n for n in new_names if n not in names]
+    sys.exit(f"{run.name} has {len(new_names)} classes but the export has {len(names)}, so it can't be scored "
+             f"on this export.\nThe export is missing: {', '.join(missing) or 'none'}. The usual cause is classes "
+             f"with no labels in the export; Roboflow leaves those out.\n"
+             f"If {run.name} is good, replace it by hand: cp {new} {MODEL}")
+
 
 def score(weights):
     m = YOLO(weights).val(data=tmp / "data.yaml", split="test", imgsz=640, plots=False,

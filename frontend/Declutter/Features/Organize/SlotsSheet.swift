@@ -77,6 +77,9 @@ struct SlotsSheet: View {
         space.slotRects = Dictionary(uniqueKeysWithValues: space.slotRects.compactMap { slot, rect in
             renamed[slot].map { ($0, rect) }  // a renamed slot keeps its outline; a deleted one loses it
         })
+        for item in space.items {  // an item moved onto a renamed shelf stays on it; on a deleted one it rejoins its zone
+            if let slot = item.slot { item.slot = renamed[slot] }
+        }
         space.slots = names
         try? context.save()
         dismiss()

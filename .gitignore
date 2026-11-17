@@ -1,6 +1,7 @@
 .venv/
 out/
 *.pt
+mobileclip_blt.ts
 samples/
 runs/
 xcuserdata/
@@ -10,5 +11,6 @@ backend/train/runs/
 .vscode/
 __pycache__/
 backend/models/
+backend/*.zip
 backend/models3d/*
 !backend/models3d/.gitkeep

@@ -6,3 +6,6 @@ out
 train/dataset
 train/runs
 **/__pycache__
+# what train/yoloe.py downloads into this folder (root only: models/best.pt still ships)
+*.pt
+mobileclip_blt.ts

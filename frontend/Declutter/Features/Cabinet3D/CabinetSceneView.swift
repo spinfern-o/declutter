@@ -2,11 +2,13 @@ import RealityKit
 import SwiftData
 import SwiftUI
 
-/// The plan as a 3D cabinet: a board for each shelf (the detected shelves, in the photo's proportions)
-/// with each item's model fitted onto its planned shelf. Dragging a model to another shelf moves its
-/// whole zone, like on the Plan screen. Dragging empty space orbits the camera.
+/// The organized cabinet in 3D, what "Organize" opens: a board for each shelf (the detected shelves, in the
+/// photo's proportions) with each item on its planned shelf, as its model or a gray block. Dragging an item
+/// to another shelf moves that one item; whole zones move on the Plan list. Dragging empty space orbits.
 struct CabinetSceneView: View {
     @Bindable var space: Space
+    @State private var editingSlots = false
+    @State private var showingPlan = false
     @State private var heightRatio = 1.0  // photo height / width
     @State private var models: [String: Entity] = [:]  // loaded once per object, cloned per item
     @State private var dragging = Dragging()  // a class, so updating it mid-drag doesn't rebuild the scene
@@ -21,8 +23,11 @@ struct CabinetSceneView: View {
     var body: some View {
         // read here so any change re-runs `update` with fresh values
         let rects = CabinetLayout.rects(slots: space.slots, saved: space.slotRects)
-        let placement = space.placement
-        let items = space.items.filter { $0.zone != Organizer.tossZone && placement[$0.zone] != nil }
+        // every item with a shelf, in a stable order: a block is named by its index here
+        let placed: [Placed] = space.items.byName.compactMap { item in
+            guard item.zone != Organizer.tossZone, let slot = space.shelf(of: item) else { return nil }
+            return (item, slot)
+        }
         let models = models
         let ratio = heightRatio
 
@@ -36,24 +41,49 @@ struct CabinetSceneView: View {
             content.add(light)
         } update: { content in
             guard let root = content.entities.first(where: { $0.name == "cabinet" }) else { return }
-            build(root, rects: rects, items: items, placement: placement, models: models, ratio: ratio)
+            build(root, rects: rects, placed: placed, models: models, ratio: ratio)
         }
         .realityViewCameraControls(.orbit)
-        .highPriorityGesture(drag(rects: rects, ratio: ratio))  // a drag on a model moves it; elsewhere it orbits
+        .highPriorityGesture(drag(placed, rects: rects, ratio: ratio))  // a drag on an item moves it; elsewhere it orbits
         .sensoryFeedback(.success, trigger: moves)
         .accessibilityElement()
-        .accessibilityLabel(summary(rects: rects, items: items, placement: placement))
+        .accessibilityLabel(summary(rects: rects, placed: placed))
         .accessibilityActions {
-            ForEach(Array(Set(items.map(\.zone))).sorted(), id: \.self) { zone in
-                ForEach(space.slots.filter { $0 != placement[zone] }, id: \.self) { slot in
-                    Button("Move \(zone) to \(slot)") { move(zone, to: slot) }
+            ForEach(placed.indices, id: \.self) { i in
+                ForEach(space.slots.filter { $0 != placed[i].slot }, id: \.self) { slot in
+                    Button("Move \(placed[i].item.name) to \(slot)") { move(placed[i].item, to: slot) }
+                }
+            }
+        }
+        .overlay {
+            if space.slots.isEmpty {
+                ContentUnavailableView {
+                    Label("No Slots Yet", systemImage: "cabinet")
+                } description: {
+                    Text("Tell Declutter which shelves and drawers this cabinet has.")
+                } actions: {
+                    Button("Set Up Cabinet") { editingSlots = true }
+                        .buttonStyle(.borderedProminent)
                 }
             }
         }
         .navigationTitle("3D Cabinet")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Button("Plan", systemImage: "list.bullet") { showingPlan = true }
+                .disabled(space.slots.isEmpty)
+        }
+        .sheet(isPresented: $editingSlots) { SlotsSheet(space: space) }
+        .navigationDestination(isPresented: $showingPlan) { OrganizeView(space: space) }
+        .onAppear {
+            if space.slots.isEmpty { editingSlots = true }
+            space.replan()
+        }
+        .onChange(of: space.slots) { space.replan() }
         .task(id: ModelStore.shared.version) { await load() }  // again when the server's models change
     }
+
+    private typealias Placed = (item: Item, slot: String)  // an item and the shelf it sits on
 
     private func load() async {
         if let size = UIImage(data: space.photo)?.size, size.width > 0 { heightRatio = size.height / size.width }
@@ -66,7 +96,7 @@ struct CabinetSceneView: View {
 
     // MARK: Building
 
-    private func build(_ root: Entity, rects: [String: [Double]], items: [Item], placement: [String: String],
+    private func build(_ root: Entity, rects: [String: [Double]], placed: [Placed],
                        models: [String: Entity], ratio: Double) {
         root.children.removeAll()
         let r = Float(ratio), depth = Float(CabinetLayout.depth)
@@ -88,10 +118,10 @@ struct CabinetSceneView: View {
         }
 
         let feet = CabinetLayout.footprints(
-            items: items.map { (id: $0.persistentModelID, zone: $0.zone, name: $0.name, box: $0.box) },
-            placement: placement, rects: rects, heightRatio: ratio)
-        for item in items {
-            guard let foot = feet[item.persistentModelID], let slot = placement[item.zone], let v = rects[slot] else { continue }
+            items: placed.map { (id: $0.item.persistentModelID, slot: $0.slot, zone: $0.item.zone, name: $0.item.name, box: $0.item.box) },
+            rects: rects, heightRatio: ratio)
+        for (index, (item, slot)) in placed.enumerated() {
+            guard let foot = feet[item.persistentModelID], let v = rects[slot] else { continue }
             let side = Float(foot.width), room = Float(v[3]) * r * 0.95  // leave a gap under the next shelf
 
             let visual: Entity
@@ -109,7 +139,7 @@ struct CabinetSceneView: View {
             }
 
             let holder = Entity()
-            holder.name = item.zone
+            holder.name = "\(index)"  // the drag finds the item by this
             holder.addChild(visual)
             holder.position = [Float(foot.midX) - 0.5, bottom(v), -depth / 2 + Float(foot.midY)]
             let bounds = holder.visualBounds(relativeTo: holder)
@@ -145,7 +175,7 @@ struct CabinetSceneView: View {
 
     // MARK: Moving
 
-    private func drag(rects: [String: [Double]], ratio: Double) -> some Gesture {
+    private func drag(_ placed: [Placed], rects: [String: [Double]], ratio: Double) -> some Gesture {
         DragGesture()
             .targetedToAnyEntity()
             .onChanged { value in
@@ -166,8 +196,9 @@ struct CabinetSceneView: View {
                 defer { dragging.entity = nil }
                 // the front-view spot just above where it was let go, in layout space (photo widths, y down)
                 let drop = CGPoint(x: Double(holder.position.x) + 0.5, y: 0.5 * ratio - Double(holder.position.y) - 0.02)
-                if let slot = CabinetLayout.slot(at: drop, in: rects, heightRatio: ratio), slot != space.placement[holder.name] {
-                    move(holder.name, to: slot)  // the rebuild puts it on its new shelf
+                if let i = Int(holder.name), placed.indices.contains(i),
+                   let slot = CabinetLayout.slot(at: drop, in: rects, heightRatio: ratio), slot != placed[i].slot {
+                    move(placed[i].item, to: slot)  // the rebuild puts it on its new shelf
                 } else {  // off every shelf, or back on its own: spring back
                     var home = holder.transform
                     home.translation = dragging.start
@@ -176,15 +207,15 @@ struct CabinetSceneView: View {
             }
     }
 
-    private func move(_ zone: String, to slot: String) {
-        space.place(zone, in: slot)
+    private func move(_ item: Item, to slot: String) {
+        space.place(item, in: slot)
         moves += 1
     }
 
     /// What VoiceOver reads: each shelf from top to bottom with what's on it.
-    private func summary(rects: [String: [Double]], items: [Item], placement: [String: String]) -> String {
+    private func summary(rects: [String: [Double]], placed: [Placed]) -> String {
         rects.sorted { $0.value[1] < $1.value[1] }.map { slot, _ in
-            let names = items.filter { placement[$0.zone] == slot }.byName.map(\.name)
+            let names = placed.filter { $0.slot == slot }.map { $0.item.name }
             return "\(slot): \(names.isEmpty ? "empty" : names.joined(separator: ", "))"
         }.joined(separator: ". ")
     }

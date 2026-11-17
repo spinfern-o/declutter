@@ -11,6 +11,7 @@ struct DeclutterApp: App {
         ModelStore.selfCheck()
         RoomGeometry.selfCheck()
         RoomOrganizer.selfCheck()
+        Furniture.selfCheck()
         #endif
     }
 

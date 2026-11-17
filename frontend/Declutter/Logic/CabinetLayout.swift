@@ -68,15 +68,27 @@ enum CabinetLayout {
         return result
     }
 
-    /// Each placed item's square on its shelf's floor, seen from above: x across the cabinet (photo widths),
-    /// y from the back (0) to the front (`depth`). Items keep their zone together inside a shelf.
-    static func footprints<ID: Hashable>(items: [(id: ID, zone: String, name: String, box: [Double]?)],
-                                         placement: [String: String], rects: [String: [Double]],
-                                         heightRatio: Double) -> [ID: CGRect] {
+    /// The shelf an item sits on: the one the user put it on while that shelf still exists, otherwise its zone's.
+    static func slot(override own: String?, zoneSlot: String?, slots: [String]) -> String? {
+        if let own, slots.contains(own) { return own }
+        return zoneSlot
+    }
+
+    /// What an item remembers after being dropped on a shelf: nothing on its zone's own shelf, so it follows
+    /// the zone again; any other shelf, that shelf.
+    static func ownSlot(droppedOn slot: String, zoneSlot: String?) -> String? {
+        slot == zoneSlot ? nil : slot
+    }
+
+    /// Each item's square on its shelf's floor, seen from above: x across the cabinet (photo widths),
+    /// y from the back (0) to the front (`depth`). `slot` is the shelf the item sits on (see `slot(override:)`).
+    /// Items keep their zone together inside a shelf.
+    static func footprints<ID: Hashable>(items: [(id: ID, slot: String, zone: String, name: String, box: [Double]?)],
+                                         rects: [String: [Double]], heightRatio: Double) -> [ID: CGRect] {
         var result: [ID: CGRect] = [:]
         for (slot, v) in rects {
             let inSlot = items
-                .filter { placement[$0.zone] == slot }
+                .filter { $0.slot == slot }
                 .map { (item: $0, side: side(for: $0.box, heightRatio: heightRatio)) }
                 .sorted { ($0.item.zone, -$0.side, $0.item.name) < ($1.item.zone, -$1.side, $1.item.name) }
             let floor = CGRect(x: v[0], y: 0, width: v[2], height: depth)
@@ -178,10 +190,23 @@ enum CabinetLayout {
         assert(mixed.count == 3 && mixed["Gone"] == nil, "only current slots get rectangles")
         assert(mixed["Top shelf"] == [0.1, 0.1, 0.8, 0.2] && noOverlap(mixed), "slots without one go below the detected ones")
 
-        let feet = footprints(items: [(id: 1, zone: "Tech", name: "a", box: nil), (id: 2, zone: "Tech", name: "b", box: [0, 0, 0.9, 0.9])],
-                              placement: ["Tech": "Top shelf"], rects: ["Top shelf": [0.2, 0, 0.5, 0.3]], heightRatio: 1)
+        let feet = footprints(items: [(id: 1, slot: "Top shelf", zone: "Tech", name: "a", box: nil),
+                                      (id: 2, slot: "Top shelf", zone: "Tech", name: "b", box: [0, 0, 0.9, 0.9])],
+                              rects: ["Top shelf": [0.2, 0, 0.5, 0.3]], heightRatio: 1)
         assert(feet.count == 2 && feet.values.allSatisfy { CGRect(x: 0.2, y: 0, width: 0.5, height: depth).insetBy(dx: -1e-6, dy: -1e-6).contains($0) },
                "items sit on their shelf's floor")
         assert(feet[2]!.width > feet[1]!.width, "a bigger item in the photo gets a bigger footprint")
+
+        let pair = ["Left", "Right"]
+        assert(slot(override: "Right", zoneSlot: "Left", slots: pair) == "Right", "an item moved on its own sits where it was put")
+        assert(slot(override: nil, zoneSlot: "Left", slots: pair) == "Left", "other items follow their zone")
+        assert(slot(override: "Gone", zoneSlot: "Left", slots: pair) == "Left", "a move onto a deleted shelf falls back to the zone's")
+        assert(slot(override: nil, zoneSlot: nil, slots: pair) == nil, "a zone with no shelf yet shows nowhere")
+        assert(ownSlot(droppedOn: "Left", zoneSlot: "Left") == nil, "dropped on its zone's shelf, an item follows the zone again")
+        assert(ownSlot(droppedOn: "Right", zoneSlot: "Left") == "Right", "dropped on another shelf, it remembers that shelf")
+        let split = footprints(items: [(id: 1, slot: "Left", zone: "Tech", name: "a", box: nil),
+                                       (id: 2, slot: "Right", zone: "Tech", name: "b", box: nil)],
+                               rects: ["Left": [0, 0, 0.5, 1], "Right": [0.5, 0, 0.5, 1]], heightRatio: 1)
+        assert(split[1]!.maxX <= 0.5 + 1e-9 && split[2]!.minX >= 0.5 - 1e-9, "one item moves to another shelf while its zone stays")
     }
 }
